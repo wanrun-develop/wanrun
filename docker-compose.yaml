@@ -1,0 +1,21 @@
+version: "3.9"
+services:
+  postgres:
+    image: postgres:16.3-alpine
+    container_name: postgres
+    ports:
+      - 5555:5432
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - /var/postgres:/var/lib/postgresql/data
+    networks:
+      dog-runner:
+
+networks: 
+  dog-runner:
+# データの永続化
+volumes:
+  postgres:
