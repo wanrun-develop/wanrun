@@ -13,9 +13,18 @@ services:
       - /var/postgres:/var/lib/postgresql/data
     networks:
       dog-runner:
-
+  backend:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    container_name: dog-runner-backend
+    ports:
+      - 8080:8080
+    volumes:
+      - ./backend:/app
 networks: 
   dog-runner:
 # データの永続化
 volumes:
   postgres:
+  backend:
