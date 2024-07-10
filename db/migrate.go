@@ -23,9 +23,24 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := m.Up(); err != nil {
-		log.Fatal(err)
+
+	direction := os.Getenv("MIGRATION_DIRECTION")
+
+	switch direction {
+	case "up":
+		if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+			log.Fatal(err)
+		}
+		log.Printf("Create table!!!")
+	case "down":
+		if err := m.Down(); err != nil && err != migrate.ErrNoChange {
+			log.Fatal(err)
+		}
+		log.Printf("Delete table!!!")
+	default:
+		log.Fatalf("Unknown migration direction: %s", direction)
 	}
+
 }
 
 func P(t interface{}) {
