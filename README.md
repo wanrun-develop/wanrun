@@ -12,6 +12,6 @@ https://github.com/golang-migrate/migrate/blob/master/database/postgres/TUTORIAL
 
 ### SQLファイル作成コマンド
 ```
-絶対パスで指定ができなかったので注意
-migrate create -ext sql -dir .db/migrations -seq {create_table_name}
+*絶対パスで指定ができなかったので注意(ルートフォルダからやって)
+migrate create -ext sql -dir db/migrations -seq {create_table_name}
 ```
