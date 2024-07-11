@@ -40,7 +40,6 @@ func main() {
 	default:
 		log.Fatalf("Unknown migration direction: %s", direction)
 	}
-
 }
 
 func P(t interface{}) {
