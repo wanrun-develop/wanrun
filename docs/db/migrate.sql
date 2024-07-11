@@ -85,7 +85,6 @@ CREATE TABLE IF NOT EXISTS tag_mst (
     description text
 );
 
-
 CREATE TABLE IF NOT EXISTS auth_dog_owners (
     auth_dog_owner_id serial primary key,
     dog_owner_id bigint not null,
@@ -93,7 +92,6 @@ CREATE TABLE IF NOT EXISTS auth_dog_owners (
     grant_type int not null,
     login_at timestamp
 );
-
 
 CREATE TABLE IF NOT EXISTS auth_dogrun_managers (
     auth_dogrun_manager_id serial primary key,
