@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"reflect"
+	"strconv"
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -37,6 +38,16 @@ func main() {
 			log.Fatal(err)
 		}
 		log.Printf("Delete table!!!")
+	case "force":
+		version := os.Getenv("MIGRATION_VERSION")
+		v, err := strconv.Atoi(version)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if err := m.Force(v); err != nil {
+			log.Fatal(err)
+		}
+		log.Printf("Force set version to %d", v)
 	default:
 		log.Fatalf("Unknown migration direction: %s", direction)
 	}
