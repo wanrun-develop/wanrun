@@ -69,21 +69,22 @@ CREATE TABLE IF NOT EXISTS dogrun_images (
     dogrun_image_id serial primary key,
     dogrun_id bigint not null,
     image text not null,
-    "order" int,
+    sort_order int,
     upload_at timestamp
 );
 
 CREATE TABLE IF NOT EXISTS dogrun_tags (
     dogrun_tag_id serial primary key,
     dogrun_id bigint not null,
-    tag int not null
+    tag_id int not null
 );
 
 CREATE TABLE IF NOT EXISTS tag_mst (
     tag_id serial primary key,
-    tag_name varchar(64),
+    tag_name varchar(64) not null,
     description text
 );
+
 
 CREATE TABLE IF NOT EXISTS auth_dog_owners (
     auth_dog_owner_id serial primary key,
@@ -93,6 +94,7 @@ CREATE TABLE IF NOT EXISTS auth_dog_owners (
     login_at timestamp
 );
 
+
 CREATE TABLE IF NOT EXISTS auth_dogrun_managers (
     auth_dogrun_manager_id serial primary key,
     dogrun_manager_id bigint not null,
@@ -100,3 +102,22 @@ CREATE TABLE IF NOT EXISTS auth_dogrun_managers (
     grant_type int not null,
     login_at timestamp
 );
+
+
+-- foreign key 
+
+alter table dogs add foreign key (dog_owner_id) references dog_owners (dog_owner_id);
+alter table dogs add foreign key (dog_type_id) references dog_type_mst (dog_type_id);
+
+alter table injection_certifications add foreign key (dog_id) references dogs (dog_id);
+
+alter table dogruns add foreign key (dogrun_manager_id) references dogrun_managers (dogrun_manager_id);
+
+alter table dogrun_images add foreign key (dogrun_id) references dogruns (dogrun_id);
+
+alter table dogrun_tags add foreign key (dogrun_id) references dogruns (dogrun_id);
+alter table dogrun_tags add foreign key (tag_id) references tag_mst (tag_id);
+
+alter table auth_dog_owners add foreign key (dog_owner_id) references dog_owners (dog_owner_id);
+
+alter table auth_dogrun_managers add foreign key (dogrun_manager_id) references dogrun_managers (dogrun_manager_id);
