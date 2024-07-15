@@ -22,14 +22,21 @@ migrate create -ext sql -dir migrate/migration_sql -seq {create_table_name}
 dbディレクトリの中に移動して下記のコマンドを実行
 `MIGRATION_DIRECTION`の環境変数で識別をしてる。
 
-**DB作成**
+**DBテーブル作成**
 ```
 MIGRATION_DIRECTION=up go run migrate.go
 ```
 
-**DB削除**
+**DBテーブル削除**
 ```
 MIGRATION_DIRECTION=down go run migrate.go
+```
+
+**DB削除**
+※Dirty database versionエラーが発生した場合
+マイグレーションがどのバージョンで失敗したかを確認します。これはデータベースのマイグレーション履歴テーブル（通常はschema_migrationsまたはflyway_schema_history）を直接クエリすることで確認
+```
+MIGRATION_DIRECTION=force MIGRATION_VERSION={対象のバージョン番号} go run migrate.go
 ```
 
 ## go doc
