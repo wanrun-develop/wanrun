@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	sqlFilePath := "file://migrations"
+	sqlFilePath := "file://migration_sql"
 	postgresUrl := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
 		os.Getenv("POSTGRES_USER"),
 		os.Getenv("POSTGRES_PASSWORD"),
@@ -40,6 +40,7 @@ func main() {
 	default:
 		log.Fatalf("Unknown migration direction: %s", direction)
 	}
+
 }
 
 func P(t interface{}) {
