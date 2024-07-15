@@ -3,8 +3,8 @@ FROM golang:1.22.1 AS builder
 WORKDIR /app
 # ENV GO111MODULE=on
 
-RUN groupadd -g 10001 dog-runner \
-    && useradd -u 10001 -g dog-runner dog-runner
+RUN groupadd -g 10001 wanrun \
+    && useradd -u 10001 -g wanrun wanrun
 
 # Goモジュールのダウンロード
 COPY app/go.mod .
@@ -28,6 +28,6 @@ COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certifi
 
 EXPOSE 8080
 
-USER dog-runner
+USER wanrun
 
 ENTRYPOINT ["./main"]
