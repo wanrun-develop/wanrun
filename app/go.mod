@@ -1,4 +1,4 @@
-module github.com/DogRunner/wanrun
+module github.com/wanrun-develop/wanrun
 
 go 1.22.1
 
