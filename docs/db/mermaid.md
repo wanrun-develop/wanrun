@@ -15,8 +15,8 @@ erDiagram
       timestamp upd_at
   }
   
-  dogs o{--|| dog_owners : "1の飼い主は0以上の犬を所有"
-  dogs ||--|| dog_type_mst :"1の犬は1の犬種を持つ"
+  dogs o{--|| dog_owners : ""
+  dogs ||--|| dog_type_mst : ""
   dogs {
       serial dog_id PK
       reference owner FK
@@ -34,7 +34,7 @@ erDiagram
 	  varchar(32) name "犬種名"
   }
   
-  injection_certifications o{--|| dogs : "1の犬は0以上の予防注射照明を持つ"
+  injection_certifications o{--|| dogs : ""
   injection_certifications {
 	  serial injection_certification_id PK
 	  reference dog FK
@@ -53,7 +53,7 @@ erDiagram
       timestamp update_at
   }
 
-	dogruns o{--|| dogrun_managers : "1のドッグラン運営は1以上のコメントをドッグラン"
+  dogruns o{--|| dogrun_managers : ""
   dogruns {
       serial dogrun_id PK
       reference dogrun_manager FK 
@@ -69,7 +69,7 @@ erDiagram
       timestamp update_at
   }
   
-  dogrun_images o{--|| dogruns : "1のドッグランは0以上のドッグラン画像を持つ"
+  dogrun_images o{--|| dogruns : ""
   dogrun_images {   
       serial dogrun_image_id PK
       eference dogrun FK
@@ -78,21 +78,21 @@ erDiagram
 	  timestamp upload_at
   }
   
-  dogrun_tags ||--||dogruns : "1のドッグランは0以上のドッグランタグを持つ"
+  dogrun_tags o{--||dogruns : ""
+  dogrun_tags o{--||tag_master : ""
   dogrun_tags {
 	  serial dogrun_detail_id PK
 	  reference dogrun FK
-	  int tag 
+	  reference tag 
   }
   
-  tag_master o{--|| dogrun_tags : "1のドッグランタグは0以上のタグマスタを持つ"
   tag_master {
 	  serial tag_id PK
 	  varchar(64) name "タグ名"
 	  text description "説明/定義"
   }
   
-	auth_dog_owners ||--|| dog_owners : "1ユーザー1認証認証情報"
+	auth_dog_owners ||--|| dog_owners : ""
   auth_dog_owners{
 	  serial auth_dog_owner_id PK
 	  references dog_owner 
@@ -102,7 +102,7 @@ erDiagram
 	  
   }
   
-  auth_dogrun_managers ||--|| dogrun_managers:"1ユーザー1認証認証情報"
+  auth_dogrun_managers ||--|| dogrun_managers:""
   auth_dogrun_managers{
     serial auth_dogrun_manager_id PK
 	  references dogrun_manager 
@@ -110,4 +110,5 @@ erDiagram
 	  int grant_type
 	  timestamp pass_regist_at
   }
+
 ```
