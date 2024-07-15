@@ -83,7 +83,7 @@ erDiagram
   dogrun_tags {
 	  serial dogrun_detail_id PK
 	  reference dogrun FK
-	  reference tag 
+	  reference tag_id
   }
   
   tag_master {
