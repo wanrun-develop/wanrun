@@ -5,6 +5,8 @@
 ### Postgres立ち上げとEchoの立ち上げ
 docker compose up -d --build
 
+---
+
 ## Local db migration
 
 ### FYI
@@ -28,4 +30,17 @@ MIGRATION_DIRECTION=up go run migrate.go
 **DB削除**
 ```
 MIGRATION_DIRECTION=down go run migrate.go
+```
+
+## go doc
+
+### インストール方法
+```
+go install golang.org/x/tools/cmd/godoc@latest
+```
+
+### 閲覧方法
+下記のコマンド後に、`http://localhost:6060`を開く
+```
+godoc -http=:6060
 ```
