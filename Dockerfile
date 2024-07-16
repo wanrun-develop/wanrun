@@ -7,23 +7,24 @@ RUN groupadd -g 10001 wanrun \
     && useradd -u 10001 -g wanrun wanrun
 
 # Goモジュールのダウンロード
-COPY app/go.mod .
-COPY app/go.sum .
+COPY cmd/go.mod ./
+COPY cmd/go.sum ./
 RUN go mod download
 
-COPY . .
-RUN go build -o main app/main.go
+COPY cmd/ .
+WORKDIR /app/wanrun
+
+RUN go build -o main main.go
 # RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o /go/bin/app
 
-WORKDIR /app
-
 FROM golang:1.22.1
+WORKDIR /app
 # FROM alpine:3.20.1
 ENV TZ /usr/share/zoneinfo/Asia/Tokyo
 
 COPY --from=builder /etc/group /etc/group
 COPY --from=builder /etc/passwd /etc/passwd
-COPY --from=builder /app/main .
+COPY --from=builder /app/wanrun/main ./main
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
 EXPOSE 8080
