@@ -5,7 +5,8 @@ on:
     branches:
       - develop
     paths:
-    #  - app/**
+    # ある程度出来上がったらコメントを外す
+    #  - cmd/**
       - backend/**
 
 jobs:
@@ -14,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./app
+        working-directory: ./cmd
 
     steps:
       - name: Checkout repository
