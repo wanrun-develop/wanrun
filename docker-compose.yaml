@@ -21,7 +21,7 @@ services:
     ports:
       - 8080:8080
     volumes:
-      - ./backend:/app
+      - ./cmd:/var/run
 networks: 
   wanrun:
 # データの永続化
