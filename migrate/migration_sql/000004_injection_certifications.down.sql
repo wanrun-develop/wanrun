@@ -1,1 +1,1 @@
-DROP TABLE IF EXISTS injection_certifications;
+DROP TABLE IF EXISTS injection_certifications CASCADE;

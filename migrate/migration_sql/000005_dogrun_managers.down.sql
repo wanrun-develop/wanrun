@@ -1,1 +1,1 @@
-DROP TABLE IF EXISTS dogrun_managers;
+DROP TABLE IF EXISTS dogrun_managers CASCADE;
