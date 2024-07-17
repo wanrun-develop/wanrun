@@ -1,1 +1,1 @@
-DROP TABLE IF EXISTS dog_owners;
+DROP TABLE IF EXISTS dog_owners CASCADE;

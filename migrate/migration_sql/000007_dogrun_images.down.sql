@@ -1,1 +1,1 @@
-DROP TABLE IF EXISTS dogrun_images;
+DROP TABLE IF EXISTS dogrun_images  CASCADE;
