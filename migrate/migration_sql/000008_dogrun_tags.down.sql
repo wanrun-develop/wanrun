@@ -1,1 +1,1 @@
-DROP TABLE IF EXISTS dogrun_tags;
+DROP TABLE IF EXISTS dogrun_tags CASCADE;
