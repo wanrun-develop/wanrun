@@ -17,8 +17,8 @@ func main() {
 	postgresUrl := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
 		os.Getenv("POSTGRES_USER"),
 		os.Getenv("POSTGRES_PASSWORD"),
-		os.Getenv("POSTGRES_HOST"),
-		os.Getenv("POSTGRES_PORT"),
+		"localhost", // hostOSから実行する想定のため明示的に指定
+		"5555",      // host portを明示的に指定
 		os.Getenv("POSTGRES_DB"))
 	m, err := migrate.New(sqlFilePath, postgresUrl)
 	if err != nil {
