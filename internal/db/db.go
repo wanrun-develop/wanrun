@@ -10,7 +10,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func NewDB() *gorm.DB {
+func NewDB() (*gorm.DB, error) {
 	postgresUrl := fmt.Sprintf("postgres://%s:%s@%s:%s/%s",
 		os.Getenv("POSTGRES_USER"),
 		os.Getenv("POSTGRES_PASSWORD"),
@@ -20,8 +20,19 @@ func NewDB() *gorm.DB {
 	db, err := gorm.Open(postgres.Open(postgresUrl), &gorm.Config{})
 
 	if err != nil {
-		log.Fatalln(err)
+		return db, err
 	}
 	log.Println("Connected to DB")
-	return db
+	return db, nil
+}
+
+func CloseDB(db *gorm.DB) error {
+	sqlDB, err := db.DB()
+	if err != nil {
+		return err
+	}
+	if err := sqlDB.Close(); err != nil {
+		return err
+	}
+	return nil
 }
