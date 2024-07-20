@@ -25,6 +25,8 @@ func main() {
 		log.Fatal(err)
 	}
 
+	defer m.Close()
+
 	direction := os.Getenv("MIGRATION_DIRECTION")
 
 	switch direction {
@@ -51,7 +53,6 @@ func main() {
 	default:
 		log.Fatalf("Unknown migration direction: %s", direction)
 	}
-
 }
 
 func P(t interface{}) {
