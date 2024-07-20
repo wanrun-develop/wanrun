@@ -51,3 +51,9 @@ go install golang.org/x/tools/cmd/godoc@latest
 ```
 godoc -http=:6060
 ```
+
+## Folder Hierarchy
+https://github.com/golang-standards/project-layout
+
+## Naming convention
+https://go.dev/doc/effective_go#names

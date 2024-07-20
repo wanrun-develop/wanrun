@@ -20,8 +20,10 @@ func Main() {
 
 	defer db.CloseDB(dbConn)
 
+	message := fmt.Sprintf("%v", "Hello, World!!!!!!")
+
 	e.GET("/", func(c echo.Context) error {
-		return c.String(http.StatusOK, "Hello, World!!!!!")
+		return c.String(http.StatusOK, message)
 	})
 
 	e.Logger.Fatal(e.Start(":8080"))
