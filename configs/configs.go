@@ -5,7 +5,7 @@ import (
 	"strconv"
 )
 
-var AppConfig *Config
+var appConfig *Config
 
 type Config struct {
 	postgresUser     string
@@ -23,9 +23,10 @@ func LoadConfig() {
 		postgresPort:     getEnv("POSTGRES_PORT", "5432"),
 		postgresDB:       getEnv("POSTGRES_DB", "wanrun"),
 	}
-	AppConfig = config
+	appConfig = config
 }
 
+// 環境変数の取得
 func getEnv(key string, defaultVal string) string {
 	if value, exists := os.LookupEnv(key); exists {
 		return value
@@ -41,6 +42,11 @@ func getEnvAsInt(key string, defaultValue int) int {
 		}
 	}
 	return defaultValue
+}
+
+// configの構造体いのポインタ取得
+func AppConfig() *Config {
+	return appConfig
 }
 
 /*
