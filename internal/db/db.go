@@ -3,20 +3,23 @@ package db
 import (
 	"fmt"
 	"log"
-	"os"
 
 	_ "github.com/joho/godotenv"
+	"github.com/wanrun-develop/wanrun/configs"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 func NewDB() (*gorm.DB, error) {
+	config := configs.AppConfig
+
 	postgresUrl := fmt.Sprintf("postgres://%s:%s@%s:%s/%s",
-		os.Getenv("POSTGRES_USER"),
-		os.Getenv("POSTGRES_PASSWORD"),
-		os.Getenv("POSTGRES_HOST"),
-		os.Getenv("POSTGRES_PORT"),
-		os.Getenv("POSTGRES_DB"))
+		config.PostgresUser(),
+		config.PostgresPassword(),
+		config.PostgresHost(),
+		config.PostgresPort(),
+		config.PostgresDB())
+
 	db, err := gorm.Open(postgres.Open(postgresUrl), &gorm.Config{})
 
 	if err != nil {
