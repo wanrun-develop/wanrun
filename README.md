@@ -2,9 +2,33 @@
 
 ## docker command
 
-### Postgres立ち上げとEchoの立ち上げ
-docker compose up -d --build
+### 1. postgresのマウント用のフォルダ作成
 
+```
+mkdir -p /var/postgres
+```
+### 2.1 ホットリロードで開発するのか実行環境で立ち上げるのか
+`docker-compose.yaml`の`backendコンテナ`を下記に設定。
+**ホットリロードバージョン**
+```
+target: Dev
+```
+
+**実行環境で立ち上げたい場合**
+```
+target: Deploy
+```
+
+### 2.2 Postgres立ち上げとEchoの立ち上げ
+
+```
+docker compose up -d --build
+```
+
+### 3. コンテナ２台の確認
+```
+docker ps
+```
 ---
 
 ## Local db migration
