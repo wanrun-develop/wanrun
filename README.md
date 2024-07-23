@@ -25,13 +25,16 @@ target: Deploy
 docker compose up -d --build
 ```
 
-### 2.3 コンテナ２台の確認
+### 2.3 コンテナ２台の確認(backend, postgres)
+
 ```
 docker ps
 ```
 
-### FYI
+### 3. FYI
+
 https://github.com/air-verse/air
+
 ---
 
 ## Local db migration
