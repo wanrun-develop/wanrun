@@ -1,0 +1,19 @@
+##
+## Specific to .dockerignore
+##
+
+.git/
+.github/
+Dockerfile
+
+# Test binary, build with `go test -c`
+# *.test
+
+# original
+.vscode
+docker-compose.yml
+.dockerignore
+**/README.md
+docs/
+migrate/
+.env*
