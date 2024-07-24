@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/wanrun-develop/wanrun/internal/db"
@@ -16,11 +17,15 @@ func Main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	fmt.Printf("DB info: %v", dbConn)
+	fmt.Printf("DB info: %v\n", dbConn)
 
 	defer db.CloseDB(dbConn)
-
-	message := fmt.Sprintf("%v", "Hello, World!!!!!!")
+	time := time.Now()
+	message := fmt.Sprintf(
+		"%v\nNowTime: %v",
+		"Hello, World!!!!!",
+		time)
+	log.Printf("NowTime: %v\n", time)
 
 	e.GET("/", func(c echo.Context) error {
 		return c.String(http.StatusOK, message)
