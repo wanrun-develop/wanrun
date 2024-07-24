@@ -31,7 +31,7 @@ ENV CGO_ENABLED=0
 ENV GOOS=linux
 ENV GOARCH=amd64
 
-WORKDIR /app
+WORKDIR /go
 # ENV GO111MODULE=on
 
 RUN groupadd -g 10001 wanrun \
@@ -43,22 +43,26 @@ COPY go.sum ./
 RUN go mod download
 
 COPY . .
-WORKDIR /app/cmd/wanrun
+WORKDIR /go/cmd/wanrun
 
-RUN go build -o main main.go
-# RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o /go/bin/app
+RUN go build \
+-o main \
+-ldflags '-s -w' \
+main.go
 
 # ============
 # Deploy
 # ============
-FROM golang:1.22.1 AS Deploy
-WORKDIR /app
-# FROM alpine:3.20.1
-ENV TZ /usr/share/zoneinfo/Asia/Tokyo
+FROM amazonlinux:2023.5.20240708.0 AS Deploy
+ENV TZ=Asia/Tokyo
+
+WORKDIR /go
+RUN dnf install -y tzdata ca-certificates && \
+        rm -rf /var/cache/dnf/*
 
 COPY --from=Builder /etc/group /etc/group
 COPY --from=Builder /etc/passwd /etc/passwd
-COPY --from=Builder /app/cmd/wanrun/main ./main
+COPY --from=Builder /go/cmd/wanrun/main ./main
 COPY --from=Builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
 EXPOSE 8080

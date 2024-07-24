@@ -22,8 +22,8 @@ services:
     build:
       context: .
       dockerfile: ./Dockerfile
-      target: Dev # airを使ってホットリロードしたい場合
-      #target: Deploy # 実行環境で行いたい場合、コメントを外す
+      target: Dev # airを使ってホットリロードしたい場合(開発する際)
+      # target: Deploy # 本番実行環境で行いたい場合、コメントを外す
     stdin_open: true
     tty: true
     container_name: wanrun
