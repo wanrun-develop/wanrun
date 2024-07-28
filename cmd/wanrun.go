@@ -17,7 +17,6 @@ func Main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	fmt.Printf("DB info: %v\n", dbConn)
 
 	defer db.CloseDB(dbConn)
 	time := time.Now()

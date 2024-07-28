@@ -11,7 +11,8 @@ import (
 )
 
 func NewDB() (*gorm.DB, error) {
-	config := configs.AppConfig()
+	config := configs.DbInfo()
+	fmt.Printf("DB info: %+v\n", *config)
 
 	postgresUrl := fmt.Sprintf("postgres://%s:%s@%s:%s/%s",
 		config.PostgresUser(),
