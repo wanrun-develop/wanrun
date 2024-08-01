@@ -7,7 +7,7 @@ import (
 
 type IDogRepository interface {
 	GetAllDogs(dogs *[]model.Dog) error
-	GetDogByID(int) (model.Dog, error)
+	GetDogByID(dog *model.Dog, dogID uint) error
 }
 
 type dogRepository struct {
@@ -25,10 +25,9 @@ func (dr *dogRepository) GetAllDogs(dogs *[]model.Dog) error {
 	return nil
 }
 
-func (dr *dogRepository) GetDogByID(dogID int) (model.Dog, error) {
-	var dog model.Dog
+func (dr *dogRepository) GetDogByID(dog *model.Dog, dogID uint) error {
 	if err := dr.db.Where("dog_id = ?", dogID).First(&dog).Error; err != nil {
-		return model.Dog{}, err
+		return err
 	}
-	return dog, nil
+	return nil
 }

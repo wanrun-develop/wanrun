@@ -7,6 +7,7 @@ import (
 
 type IDogHandler interface {
 	GetAllDogs() ([]model.DogRes, error)
+	GetDogByID(dogID uint) (model.DogRes, error)
 }
 
 type dogHandler struct {
@@ -41,4 +42,25 @@ func (dh *dogHandler) GetAllDogs() ([]model.DogRes, error) {
 		resDogs = append(resDogs, dr)
 	}
 	return resDogs, nil
+}
+
+func (dh *dogHandler) GetDogByID(dogID uint) (model.DogRes, error) {
+	var dog model.Dog
+
+	if err := dh.dr.GetDogByID(&dog, dogID); err != nil {
+		return model.DogRes{}, err
+	}
+
+	resDog := model.DogRes{
+		DogID:      dog.DogID,
+		DogOwnerID: dog.DogOwnerID,
+		Name:       dog.Name,
+		DogTypeID:  dog.DogTypeID,
+		Weight:     dog.Weight,
+		Sex:        dog.Sex,
+		Image:      dog.Image,
+		CreateAt:   dog.CreateAt,
+		UpdateAt:   dog.UpdateAt,
+	}
+	return resDog, nil
 }
