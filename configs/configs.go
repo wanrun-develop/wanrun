@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-type DbInfoConfig struct {
+type DBInfoConfig struct {
 	postgresUser     string
 	postgresPassword string
 	postgresHost     string
@@ -26,40 +26,37 @@ func init() {
 /*
 viperのload
 */
-func LoadConfig() {
-	viper.SetConfigType("yaml")                   // 設定ファイルの形式
-	viper.SetConfigName("config-" + profile)      // 設定ファイル名を拡張子抜きで指定する
-	viper.AddConfigPath("./configs/")             // 設定ファイルの探索パスを指定する
-	viper.AddConfigPath(".")                      // 現在のワーキングディレクトリを探索することもできる
-	readViperConfig()                             // 読み込み
+func LoadConfig() error {
+	viper.SetConfigType("yaml")                  // 設定ファイルの形式
+	viper.SetConfigName("config-" + profile)     // 設定ファイル名を拡張子抜きで指定する
+	viper.AddConfigPath("./configs/")            // 設定ファイルの探索パスを指定する
+	viper.AddConfigPath(".")                     // 現在のワーキングディレクトリを探索することもできる
+	if err := viper.ReadInConfig(); err != nil { // 設定ファイルを探索して読み取る
+		_ = fmt.Errorf("設定ファイル読み込みエラー: %s \n", err) //ここでは停止させない
+		return err
+	}
 	viper.WatchConfig()                           // 設定フィアルの変更を検知する
 	viper.OnConfigChange(func(e fsnotify.Event) { // 検知時に実行する関数の設定
 		fmt.Println("設定ファイルが変更されました:", e.Name)
-		readViperConfig()
+		if err := viper.ReadInConfig(); err != nil { // 設定ファイルを探索して読み取る
+			_ = fmt.Errorf("設定ファイル読み込みエラー: %s \n", err) //ここでは停止させない
+		}
 	})
 	bindEnvs()    // 環境変数
 	setDefaults() // デフォルト設定
-}
 
-/*
-設定ファイルの読み込み
-*/
-func readViperConfig() {
-	err := viper.ReadInConfig() // 設定ファイルを探索して読み取る
-	if err != nil {             // 設定ファイルの読み取りエラー対応
-		panic(fmt.Errorf("設定ファイル読み込みエラー: %s \n", err))
-	}
+	return nil
 }
 
 /*
 viperに環境変数をバインド
 */
 func bindEnvs() {
-	viper.BindEnv("postgres.host", "POSTGRES_HOST")
-	viper.BindEnv("postgres.port", "POSTGRES_PORT")
-	viper.BindEnv("postgres.user", "POSTGRES_USER")
-	viper.BindEnv("postgres.password", "POSTGRES_PASSWORD")
-	viper.BindEnv("postgres.dbname", "POSTGRES_DB")
+	_ = viper.BindEnv("postgres.host", "POSTGRES_HOST")
+	_ = viper.BindEnv("postgres.port", "POSTGRES_PORT")
+	_ = viper.BindEnv("postgres.user", "POSTGRES_USER")
+	_ = viper.BindEnv("postgres.password", "POSTGRES_PASSWORD")
+	_ = viper.BindEnv("postgres.dbname", "POSTGRES_DB")
 }
 
 /*
@@ -69,7 +66,7 @@ func setDefaults() {
 	viper.SetDefault("postgres.host", "localhost")
 	viper.SetDefault("postgres.port", "5432")
 	viper.SetDefault("postgres.user", "wanrun")
-	viper.SetDefault("postgres.password", "pass")
+	viper.SetDefault("postgres.password", "__dummdy__")
 	viper.SetDefault("postgres.dbname", "dbname")
 }
 
@@ -84,8 +81,8 @@ func getEnv(key string, defaultVal string) string {
 /*
 DB情報のconfig構造体の取得
 */
-func DbInfo() *DbInfoConfig {
-	config := &DbInfoConfig{
+func DbInfo() *DBInfoConfig {
+	config := &DBInfoConfig{
 		postgresUser:     viper.GetString("postgres.user"),
 		postgresPassword: viper.GetString("postgres.password"),
 		postgresHost:     viper.GetString("postgres.host"),
@@ -98,22 +95,22 @@ func DbInfo() *DbInfoConfig {
 /*
 Getter
 */
-func (c *DbInfoConfig) PostgresUser() string {
+func (c *DBInfoConfig) PostgresUser() string {
 	return c.postgresUser
 }
 
-func (c *DbInfoConfig) PostgresPassword() string {
+func (c *DBInfoConfig) PostgresPassword() string {
 	return c.postgresPassword
 }
 
-func (c *DbInfoConfig) PostgresHost() string {
+func (c *DBInfoConfig) PostgresHost() string {
 	return c.postgresHost
 }
 
-func (c *DbInfoConfig) PostgresPort() string {
+func (c *DBInfoConfig) PostgresPort() string {
 	return c.postgresPort
 }
 
-func (c *DbInfoConfig) PostgresDB() string {
+func (c *DBInfoConfig) PostgresDB() string {
 	return c.postgresDB
 }
