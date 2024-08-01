@@ -45,7 +45,7 @@ func (dh *dogHandler) GetAllDogs() ([]model.DogRes, error) {
 }
 
 func (dh *dogHandler) GetDogByID(dogID uint) (model.DogRes, error) {
-	var dog model.Dog
+	dog := model.Dog{}
 
 	if err := dh.dr.GetDogByID(&dog, dogID); err != nil {
 		return model.DogRes{}, err
