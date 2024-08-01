@@ -18,10 +18,10 @@ func NewDogHandler(dr repository.IDogRepository) IDogHandler {
 }
 
 func (dh *dogHandler) GetAllDogs() ([]model.DogRes, error) {
-	dogs := []model.Dog{}
+	dogs, err := dh.dr.GetAllDogs()
 
-	if err := dh.dr.GetAllDogs(&dogs); err != nil {
-		return nil, err
+	if err != nil {
+		return []model.DogRes{}, err
 	}
 
 	resDogs := []model.DogRes{}
