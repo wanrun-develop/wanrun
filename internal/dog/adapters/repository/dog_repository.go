@@ -6,8 +6,8 @@ import (
 )
 
 type IDogRepository interface {
-	GetAllDogs(dogs *[]model.Dog) error
-	GetDogByID(dog *model.Dog, dogID uint) error
+	GetAllDogs() ([]model.Dog, error)
+	GetDogByID(dogID uint) (model.Dog, error)
 }
 
 type dogRepository struct {
@@ -18,16 +18,18 @@ func NewDogRepository(db *gorm.DB) IDogRepository {
 	return &dogRepository{db}
 }
 
-func (dr *dogRepository) GetAllDogs(dogs *[]model.Dog) error {
+func (dr *dogRepository) GetAllDogs() ([]model.Dog, error) {
+	dogs := []model.Dog{}
 	if err := dr.db.Find(&dogs).Error; err != nil {
-		return err
+		return []model.Dog{}, err
 	}
-	return nil
+	return dogs, nil
 }
 
-func (dr *dogRepository) GetDogByID(dog *model.Dog, dogID uint) error {
+func (dr *dogRepository) GetDogByID(dogID uint) (model.Dog, error) {
+	dog := model.Dog{}
 	if err := dr.db.Where("dog_id = ?", dogID).First(&dog).Error; err != nil {
-		return err
+		return model.Dog{}, err
 	}
-	return nil
+	return dog, nil
 }

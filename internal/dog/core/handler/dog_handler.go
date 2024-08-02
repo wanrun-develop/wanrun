@@ -19,10 +19,10 @@ func NewDogHandler(dr repository.IDogRepository) IDogHandler {
 }
 
 func (dh *dogHandler) GetAllDogs() ([]model.DogRes, error) {
-	dogs := []model.Dog{}
+	dogs, err := dh.dr.GetAllDogs()
 
-	if err := dh.dr.GetAllDogs(&dogs); err != nil {
-		return nil, err
+	if err != nil {
+		return []model.DogRes{}, err
 	}
 
 	resDogs := []model.DogRes{}
@@ -45,9 +45,10 @@ func (dh *dogHandler) GetAllDogs() ([]model.DogRes, error) {
 }
 
 func (dh *dogHandler) GetDogByID(dogID uint) (model.DogRes, error) {
-	dog := model.Dog{}
 
-	if err := dh.dr.GetDogByID(&dog, dogID); err != nil {
+	dog, err := dh.dr.GetDogByID(dogID)
+
+	if err != nil {
 		return model.DogRes{}, err
 	}
 
