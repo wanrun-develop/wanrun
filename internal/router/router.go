@@ -2,13 +2,17 @@ package router
 
 import (
 	"github.com/labstack/echo/v4"
+	"github.com/wanrun-develop/wanrun/internal/dog/adapters/repository"
 	"github.com/wanrun-develop/wanrun/internal/dog/controller"
+	"github.com/wanrun-develop/wanrun/internal/dog/core/handler"
+	"gorm.io/gorm"
 )
 
-func NewRouter(dc controller.IDogController) *echo.Echo {
-	e := echo.New()
+func NewRouter(e *echo.Echo, dbConn *gorm.DB) {
+	dogRepository := repository.NewDogRepository(dbConn)
+	dogHandler := handler.NewDogHandler(dogRepository)
+	dogController := controller.NewDogController(dogHandler)
 
-	e.GET("/all-dogs", dc.GetAllDogs)
-	e.GET("/dog/:dogID", dc.GetDogByID)
-	return e
+	e.GET("/all-dogs", dogController.GetAllDogs)
+	e.GET("/dog/:dogID", dogController.GetDogByID)
 }
