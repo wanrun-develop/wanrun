@@ -1,14 +1,15 @@
 package wanruncmd
 
 import (
-	"fmt"
 	"log"
-	"net/http"
-	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/wanrun-develop/wanrun/configs"
 	"github.com/wanrun-develop/wanrun/internal/db"
+	"github.com/wanrun-develop/wanrun/internal/dog/adapters/repository"
+	"github.com/wanrun-develop/wanrun/internal/dog/controller"
+	"github.com/wanrun-develop/wanrun/internal/dog/core/handler"
+	"github.com/wanrun-develop/wanrun/internal/router"
 )
 
 func init() {
@@ -18,24 +19,17 @@ func init() {
 }
 
 func Main() {
-	e := echo.New()
-
 	dbConn, err := db.NewDB()
 	if err != nil {
 		log.Fatalln(err)
 	}
 
 	defer db.CloseDB(dbConn)
-	time := time.Now()
-	message := fmt.Sprintf(
-		"%v\nNowTime: %v",
-		"Hello, World!!!!!",
-		time)
-	log.Printf("NowTime: %v\n", time)
 
-	e.GET("/", func(c echo.Context) error {
-		return c.String(http.StatusOK, message)
-	})
+	dogRepository := repository.NewDogRepository(dbConn)
+	dogHandler := handler.NewDogHandler(dogRepository)
+	dogController := controller.NewDogController(dogHandler)
+	e := router.NewRouter(dogController)
 
 	e.Logger.Fatal(e.Start(":8080"))
 }
