@@ -8,6 +8,8 @@ import (
 type IDogHandler interface {
 	GetAllDogs() ([]model.DogRes, error)
 	GetDogByID(dogID uint) (model.DogRes, error)
+	CreateDog() (model.DogRes, error)
+	DeleteDog(dogID uint) error
 }
 
 type dogHandler struct {
@@ -64,4 +66,32 @@ func (dh *dogHandler) GetDogByID(dogID uint) (model.DogRes, error) {
 		UpdateAt:   dog.UpdateAt,
 	}
 	return resDog, nil
+}
+
+func (dh *dogHandler) CreateDog() (model.DogRes, error) {
+	dog, err := dh.dr.CreateDog()
+
+	if err != nil {
+		return model.DogRes{}, err
+	}
+
+	dogRes := model.DogRes{
+		DogID:      dog.DogID,
+		DogOwnerID: dog.DogOwnerID,
+		Name:       dog.Name,
+		DogTypeID:  dog.DogTypeID,
+		Weight:     dog.Weight,
+		Sex:        dog.Sex,
+		Image:      dog.Image,
+		CreateAt:   dog.CreateAt,
+		UpdateAt:   dog.UpdateAt,
+	}
+	return dogRes, err
+}
+
+func (dh *dogHandler) DeleteDog(dogID uint) error {
+	if err := dh.dr.DeleteDog(dogID); err != nil {
+		return err
+	}
+	return nil
 }

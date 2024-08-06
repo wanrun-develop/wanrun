@@ -13,6 +13,8 @@ import (
 type IDogController interface {
 	GetAllDogs(c echo.Context) error
 	GetDogByID(c echo.Context) error
+	CreateDog(c echo.Context) error
+	DeleteDog(c echo.Context) error
 }
 
 type dogController struct {
@@ -58,3 +60,48 @@ func (dc *dogController) GetDogByID(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, resDog)
 }
+
+func (dc *dogController) CreateDog(c echo.Context) error {
+	resDog, err := dc.dh.CreateDog()
+	if err != nil {
+		log.Error(err)
+		return c.JSON(http.StatusInternalServerError, errors.ErrorResponse{
+			Code:    http.StatusInternalServerError,
+			Message: "Failed to create dog information.",
+		})
+	}
+
+	return c.JSON(http.StatusOK, resDog)
+}
+
+func (dc *dogController) DeleteDog(c echo.Context) error {
+	dogIDStr := c.Param("dogID")
+	dogID, err := strconv.Atoi(dogIDStr)
+	if err != nil {
+		log.Error(err)
+		return c.JSON(http.StatusBadRequest, errors.ErrorResponse{
+			Code:    http.StatusBadRequest,
+			Message: "Invalid dog ID format",
+		})
+	}
+	if err := dc.dh.DeleteDog(uint(dogID)); err != nil {
+		log.Error(err)
+		return c.JSON(http.StatusInternalServerError, errors.ErrorResponse{
+			Code:    http.StatusInternalServerError,
+			Message: "Failed to retrieve dog information",
+		})
+	}
+	return c.JSON(http.StatusOK, nil)
+}
+
+// func (dc *dogController) UpdateDog(c echo.Context) error {
+// 	dogIDStr := c.Param("dogID")
+// 	dogID, err := strconv.Atoi(dogIDStr)
+// 	if err != nil {
+// 		log.Error(err)
+// 		return c.JSON(http.StatusBadRequest, errors.ErrorResponse{
+// 			Code:    http.StatusBadRequest,
+// 			Message: "Invalid dog ID format",
+// 		})
+// 	}
+// }
