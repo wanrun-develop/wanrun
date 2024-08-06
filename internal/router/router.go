@@ -15,4 +15,7 @@ func NewRouter(e *echo.Echo, dbConn *gorm.DB) {
 
 	e.GET("/all-dogs", dogController.GetAllDogs)
 	e.GET("/dog/:dogID", dogController.GetDogByID)
+	e.POST("/create-dog", dogController.CreateDog)
+	e.DELETE("/delete-dog", dogController.DeleteDog)
+	// e.PUT("/dog/:dogID", dogController.UpateDog)
 }
