@@ -114,3 +114,7 @@ func (c *DBInfoConfig) PostgresPort() string {
 func (c *DBInfoConfig) PostgresDB() string {
 	return c.postgresDB
 }
+
+func FetchCondigStr(key string) string {
+	return viper.GetString(key)
+}
