@@ -7,8 +7,11 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/wanrun-develop/wanrun/configs"
 	"github.com/wanrun-develop/wanrun/internal/db"
-	"github.com/wanrun-develop/wanrun/internal/router"
+	"github.com/wanrun-develop/wanrun/internal/dog/adapters/repository"
+	"github.com/wanrun-develop/wanrun/internal/dog/controller"
+	"github.com/wanrun-develop/wanrun/internal/dog/core/handler"
 	logger "github.com/wanrun-develop/wanrun/pkg/log"
+	"gorm.io/gorm"
 )
 
 func init() {
@@ -24,8 +27,8 @@ func Main() {
 	}
 
 	defer db.CloseDB(dbConn)
+
 	e := echo.New()
-	router.NewRouter(e, dbConn)
 
 	// グローバルロガーの初期化
 	zap := logger.NewWanRunLogger()
@@ -37,7 +40,30 @@ func Main() {
 	e.Use(middleware.RequestID())
 	e.Use(logger.RequestLoggerMiddleware(zap))
 
+	// Router設定
+	newRouter(e, dbConn)
 	e.GET("/test", logger.Test)
 
 	e.Logger.Fatal(e.Start(":8080"))
+}
+
+func newRouter(e *echo.Echo, dbConn *gorm.DB) {
+	dogController := newDog(dbConn)
+
+	// e.POST("/sign-up")
+	dog := e.Group("dog")
+	dog.GET("/all", dogController.GetAllDogs)
+	dog.GET("/:dogID", dogController.GetDogByID)
+	dog.POST("/create", dogController.CreateDog)
+	dog.DELETE("/delete", dogController.DeleteDog)
+	// dog.PUT("/:dogID", dogController.UpdateDog)
+}
+
+// dogの初期化
+func newDog(dbConn *gorm.DB) controller.IDogController {
+	dogRepository := repository.NewDogRepository(dbConn)
+	dogHandler := handler.NewDogHandler(dogRepository)
+	dogController := controller.NewDogController(dogHandler)
+
+	return dogController
 }

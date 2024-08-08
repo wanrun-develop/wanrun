@@ -2,7 +2,7 @@ package handler
 
 import (
 	"github.com/wanrun-develop/wanrun/internal/dog/adapters/repository"
-	"github.com/wanrun-develop/wanrun/internal/dog/core/model"
+	model "github.com/wanrun-develop/wanrun/internal/models"
 )
 
 type IDogHandler interface {

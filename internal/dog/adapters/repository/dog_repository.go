@@ -3,7 +3,7 @@ package repository
 import (
 	"fmt"
 
-	"github.com/wanrun-develop/wanrun/internal/dog/core/model"
+	model "github.com/wanrun-develop/wanrun/internal/models"
 	"gorm.io/gorm"
 )
 
