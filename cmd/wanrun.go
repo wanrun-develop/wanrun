@@ -13,6 +13,7 @@ import (
 	dogRepository "github.com/wanrun-develop/wanrun/internal/dog/adapters/repository"
 	dogController "github.com/wanrun-develop/wanrun/internal/dog/controller"
 	dogHandler "github.com/wanrun-develop/wanrun/internal/dog/core/handler"
+
 	logger "github.com/wanrun-develop/wanrun/pkg/log"
 	"gorm.io/gorm"
 )
@@ -81,4 +82,15 @@ func newAuth(dbConn *gorm.DB) authController.IAuthController {
 	authController := authController.NewAuthController(authHandler)
 
 	return authController
+}
+
+}
+
+// dogの初期化
+func newDog(dbConn *gorm.DB) controller.IDogController {
+	dogRepository := repository.NewDogRepository(dbConn)
+	dogHandler := handler.NewDogHandler(dogRepository)
+	dogController := controller.NewDogController(dogHandler)
+
+	return dogController
 }
