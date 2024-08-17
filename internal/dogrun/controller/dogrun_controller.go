@@ -4,9 +4,9 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/gommon/log"
 	"github.com/wanrun-develop/wanrun/internal/dogrun/core/handler"
 	"github.com/wanrun-develop/wanrun/pkg/errors"
+	"github.com/wanrun-develop/wanrun/pkg/log"
 )
 
 type IDogrunController interface {
@@ -22,11 +22,14 @@ func NewDogrunController(h handler.IDogrunHandler) IDogrunController {
 }
 
 func (dc *DogrunController) GetDogrunDetail(c echo.Context) error {
-	placeId := c.Param("placeId")
+	logger := log.GetLogger(c).Sugar()
 
-	dogrun, err := dc.h.GetDogrunDetail(placeId)
+	placeId := c.Param("placeId")
+	logger.Info("リクエストplace id :", placeId)
+	log.GetLogger(c).Info("リクエストplace id")
+
+	dogrun, err := dc.h.GetDogrunDetail(c, placeId)
 	if err != nil {
-		log.Error(err)
 		return c.JSON(http.StatusInternalServerError, errors.ErrorResponse{
 			Code:    http.StatusInternalServerError,
 			Message: "Failed to retrieve dog run information",

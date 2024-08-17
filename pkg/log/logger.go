@@ -56,7 +56,8 @@ func GetLogger(c echo.Context) *zap.Logger {
 	}
 	requestID := c.Response().Header().Get(echo.HeaderXRequestID)
 	logger := gLogger.With(zap.String("request_id", requestID))
-	logger.Debug("コンテキストにlogerがないため、生成")
+	logger.Debug("コンテキストにlogerがないため、生成してコンテキストにセット")
+	c.Set("logger", logger) // コンテキストにロガーをセット
 	return logger
 }
 
