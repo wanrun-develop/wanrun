@@ -5,19 +5,19 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"github.com/wanrun-develop/wanrun/configs"
 	"github.com/wanrun-develop/wanrun/internal/db"
 	"github.com/wanrun-develop/wanrun/internal/dog/adapters/repository"
 	"github.com/wanrun-develop/wanrun/internal/dog/controller"
 	"github.com/wanrun-develop/wanrun/internal/dog/core/handler"
+	"github.com/wanrun-develop/wanrun/internal/dogrun/adapters/googleplace"
+	dogrunC "github.com/wanrun-develop/wanrun/internal/dogrun/controller"
+	dogrunH "github.com/wanrun-develop/wanrun/internal/dogrun/core/handler"
 	logger "github.com/wanrun-develop/wanrun/pkg/log"
 	"gorm.io/gorm"
 )
 
 func init() {
-	if err := configs.LoadConfig(); err != nil {
-		log.Fatal("設定ファイルのLoadに失敗しました。")
-	}
+
 }
 
 func Main() {
@@ -57,6 +57,10 @@ func newRouter(e *echo.Echo, dbConn *gorm.DB) {
 	dog.POST("/create", dogController.CreateDog)
 	dog.DELETE("/delete", dogController.DeleteDog)
 	// dog.PUT("/:dogID", dogController.UpdateDog)
+
+	dogrunConrtoller := newDogrun()
+	dogrun := e.Group("dogrun")
+	dogrun.GET("/detail/:placeId", dogrunConrtoller.GetDogrunDetail)
 }
 
 // dogの初期化
@@ -66,4 +70,10 @@ func newDog(dbConn *gorm.DB) controller.IDogController {
 	dogController := controller.NewDogController(dogHandler)
 
 	return dogController
+}
+
+func newDogrun() dogrunC.IDogrunController {
+	dogrunRest := googleplace.NewRest()
+	dogrunHanlder := dogrunH.NewDogrunHandler(dogrunRest)
+	return dogrunC.NewDogrunController(dogrunHanlder)
 }

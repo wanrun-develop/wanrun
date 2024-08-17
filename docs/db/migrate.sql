@@ -54,8 +54,9 @@ CREATE TABLE IF NOT EXISTS dogrun_managers (
 
 CREATE TABLE IF NOT EXISTS dogruns (
     dogrun_id serial primary key,
+    place_id varchar(256) not null,
     dogrun_manager_id bigint,
-    name varchar(256) not null,
+    name varchar(256),
     address varchar(256),
     postcode varchar(8),
     business_day int,
