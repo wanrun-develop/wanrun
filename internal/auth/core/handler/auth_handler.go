@@ -7,7 +7,7 @@ import (
 )
 
 type IAuthHandler interface {
-	SignUp(authUser *model.AuthDogOwner) (*model.ResAuthDogOwner, error)
+	SignUp(authUser *model.AuthDogOwner) (model.ResAuthDogOwner, error)
 	// LogIn() error
 	// LogOut() error
 }
@@ -21,17 +21,26 @@ func NewAuthHandler(ar repository.IAuthRepository) IAuthHandler {
 }
 
 // SignUp
-func (ah *authHandler) SignUp(authUser *model.AuthDogOwner) (*model.ResAuthDogOwner, error) {
+func (ah *authHandler) SignUp(authUser *model.AuthDogOwner) (model.ResAuthDogOwner, error) {
 	// パスワードのハッシュ化
 	hash, err := bcrypt.GenerateFromPassword([]byte(authUser.Password), bcrypt.DefaultCost) // 一旦costをデフォルト値
 	if err != nil {
-		return nil, err
+		return model.ResAuthDogOwner{}, err
 	}
 
 	authUser.Password = string(hash)
 
 	// ドッグのオーナー作成
-	return ah.ar.CreateDogOwner(authUser)
+	result, err := ah.ar.CreateDogOwner(authUser)
+
+	resDogOwnerDetail := model.ResAuthDogOwner{
+		AuthDogOwnerID: result.AuthDogOwnerID,
+		Name:           result.DogOwner.Name,
+		Email:          result.DogOwner.Email,
+		Sex:            result.DogOwner.Sex,
+	}
+
+	return resDogOwnerDetail, err
 }
 
 func (ah *authHandler) LogIn() error  { return nil }

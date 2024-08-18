@@ -34,6 +34,7 @@ func (ac *authController) SignUp(c echo.Context) error {
 		})
 	}
 
+	// SignUp
 	resAuthDogOwner, err := ac.ah.SignUp(&authDogOwner)
 
 	if err != nil {
@@ -44,7 +45,7 @@ func (ac *authController) SignUp(c echo.Context) error {
 		})
 	}
 
-	return c.JSON(http.StatusOK, *resAuthDogOwner)
+	return c.JSON(http.StatusOK, resAuthDogOwner)
 }
 
 func (ac *authController) LogIn(c echo.Context) error  { return nil }
