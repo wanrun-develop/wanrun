@@ -28,7 +28,7 @@ func (ah *authHandler) SignUp(reqADO *model.ReqAuthDogOwner) (model.ResAuthDogOw
 		return model.ResAuthDogOwner{}, err
 	}
 
-	// requestから
+	// requestからauthDogOwnerの構造体に詰め替え
 	authDogOwner := model.AuthDogOwner{
 		AuthDogOwnerID: reqADO.AuthDogOwnerID,
 		Password:       string(hash),
@@ -40,6 +40,7 @@ func (ah *authHandler) SignUp(reqADO *model.ReqAuthDogOwner) (model.ResAuthDogOw
 	// ドッグのオーナー作成
 	result, err := ah.ar.CreateDogOwner(&authDogOwner)
 
+	// 作成したDogOwnerの情報を詰め替え
 	resDogOwnerDetail := model.ResAuthDogOwner{
 		AuthDogOwnerID: result.AuthDogOwnerID,
 		Name:           result.DogOwner.Name,
