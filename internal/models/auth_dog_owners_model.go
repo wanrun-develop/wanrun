@@ -9,6 +9,14 @@ type AuthDogOwner struct {
 	DogOwnerID uint     `json:"DogOwnerId" gorm:"column:dog_owner_id;not null"`
 }
 
+type ReqAuthDogOwner struct {
+	AuthDogOwnerID uint     `json:"authDogOwnerId"`
+	Password       string   `json:"password"`
+	GrantType      int      `json:"grantType"`
+	DogOwner       DogOwner `json:"dogOwner"`
+	DogOwnerID     uint     `json:"DogOwnerId"`
+}
+
 type ResAuthDogOwner struct {
 	AuthDogOwnerID uint   `json:"authDogOwnerId"`
 	Name           string `json:"name"`
