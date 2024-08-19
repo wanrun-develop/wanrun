@@ -21,17 +21,17 @@ func init() {
 type IRest interface {
 	GETPlaceInfo(c echo.Context, placeId string, field IFieldMask) ([]byte, error)
 }
-type Rest struct{}
+type rest struct{}
 
 func NewRest() IRest {
-	return &Rest{}
+	return &rest{}
 }
 
 /*
 GET
 google place apiの実行
 */
-func (r *Rest) GETPlaceInfo(c echo.Context, placeId string, field IFieldMask) ([]byte, error) {
+func (r *rest) GETPlaceInfo(c echo.Context, placeId string, field IFieldMask) ([]byte, error) {
 	logger := log.GetLogger(c).Sugar()
 
 	url := urlApiPlaceWPlaceId(placeId)

@@ -13,15 +13,15 @@ type IDogrunController interface {
 	GetDogrunDetail(echo.Context) error
 }
 
-type DogrunController struct {
+type dogrunController struct {
 	h handler.IDogrunHandler
 }
 
 func NewDogrunController(h handler.IDogrunHandler) IDogrunController {
-	return &DogrunController{h}
+	return &dogrunController{h}
 }
 
-func (dc *DogrunController) GetDogrunDetail(c echo.Context) error {
+func (dc *dogrunController) GetDogrunDetail(c echo.Context) error {
 	logger := log.GetLogger(c).Sugar()
 
 	placeId := c.Param("placeId")
