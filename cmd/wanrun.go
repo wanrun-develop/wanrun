@@ -83,14 +83,3 @@ func newAuth(dbConn *gorm.DB) authController.IAuthController {
 
 	return authController
 }
-
-}
-
-// dogの初期化
-func newDog(dbConn *gorm.DB) controller.IDogController {
-	dogRepository := repository.NewDogRepository(dbConn)
-	dogHandler := handler.NewDogHandler(dogRepository)
-	dogController := controller.NewDogController(dogHandler)
-
-	return dogController
-}
