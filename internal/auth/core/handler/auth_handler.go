@@ -7,7 +7,7 @@ import (
 )
 
 type IAuthHandler interface {
-	SignUp(authUser *model.AuthDogOwner) (model.ResAuthDogOwner, error)
+	SignUp(authUser *model.ReqAuthDogOwner) (model.ResAuthDogOwner, error)
 	// LogIn() error
 	// LogOut() error
 }
@@ -21,18 +21,26 @@ func NewAuthHandler(ar repository.IAuthRepository) IAuthHandler {
 }
 
 // SignUp
-func (ah *authHandler) SignUp(authUser *model.AuthDogOwner) (model.ResAuthDogOwner, error) {
+func (ah *authHandler) SignUp(reqADO *model.ReqAuthDogOwner) (model.ResAuthDogOwner, error) {
 	// パスワードのハッシュ化
-	hash, err := bcrypt.GenerateFromPassword([]byte(authUser.Password), bcrypt.DefaultCost) // 一旦costをデフォルト値
+	hash, err := bcrypt.GenerateFromPassword([]byte(reqADO.Password), bcrypt.DefaultCost) // 一旦costをデフォルト値
 	if err != nil {
 		return model.ResAuthDogOwner{}, err
 	}
 
-	authUser.Password = string(hash)
+	// requestからauthDogOwnerの構造体に詰め替え
+	authDogOwner := model.AuthDogOwner{
+		AuthDogOwnerID: reqADO.AuthDogOwnerID,
+		Password:       string(hash),
+		GrantType:      reqADO.GrantType,
+		DogOwner:       reqADO.DogOwner,
+		DogOwnerID:     reqADO.DogOwner.DogOwnerID,
+	}
 
 	// ドッグのオーナー作成
-	result, err := ah.ar.CreateDogOwner(authUser)
+	result, err := ah.ar.CreateDogOwner(&authDogOwner)
 
+	// 作成したDogOwnerの情報を詰め替え
 	resDogOwnerDetail := model.ResAuthDogOwner{
 		AuthDogOwnerID: result.AuthDogOwnerID,
 		Name:           result.DogOwner.Name,

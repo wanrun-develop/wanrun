@@ -25,8 +25,8 @@ func NewAuthController(ah handler.IAuthHandler) IAuthController {
 }
 
 func (ac *authController) SignUp(c echo.Context) error {
-	authDogOwner := model.AuthDogOwner{}
-	if err := c.Bind(&authDogOwner); err != nil {
+	reqADO := model.ReqAuthDogOwner{}
+	if err := c.Bind(&reqADO); err != nil {
 		log.Error(err)
 		return c.JSON(http.StatusBadRequest, errors.ErrorResponse{
 			Code:    http.StatusBadRequest,
@@ -35,7 +35,7 @@ func (ac *authController) SignUp(c echo.Context) error {
 	}
 
 	// SignUp
-	resAuthDogOwner, err := ac.ah.SignUp(&authDogOwner)
+	resAuthDogOwner, err := ac.ah.SignUp(&reqADO)
 
 	if err != nil {
 		log.Error(err)
