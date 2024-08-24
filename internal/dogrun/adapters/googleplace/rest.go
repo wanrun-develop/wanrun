@@ -64,6 +64,7 @@ func fetchGETReq(c echo.Context, url string) (*http.Request, error) {
 	logger := log.GetLogger(c)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
+		logger.Sugar().Error(err)
 		// TODO logger
 		return nil, err
 	}
@@ -95,6 +96,7 @@ func exec(c echo.Context, req *http.Request) (*http.Response, error) {
 	resp, err := client.Do(req)
 
 	if err != nil {
+		logger.Sugar().Error(err)
 		return nil, err
 	}
 

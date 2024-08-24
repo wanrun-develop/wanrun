@@ -17,17 +17,32 @@ const (
 	F_PLUSCODE_LO              = "plusCode"              //場所コード
 	F_TYPES_LO                 = "types"                 //place type
 	//Basic
-	F_DISPLAYNAME = "displayName" // 表示名
-	F_RATING      = "rating"      //評価
+	F_DISPLAYNAME_B    = "displayName"    // 表示名
+	F_RATING_B         = "rating"         //評価
+	F_BUSINESSSTATUS_B = "businessStatus" //評価(0~5)
+	//Advanced
+	F_USERRATINGCOUNT_A     = "userRatingCount"     //評価数
+	F_REGULAROPENINGHOURS_A = "regularOpeningHours" //営業時間
+	F_CURRENTOPENINGHOURS_A = "currentOpeningHours" //今日を含む７日間の営業日
+
 )
 
 type IFieldMask interface {
 	getValue() string
 }
 
-// 基礎情報
+// 詳細情報用
 type BaseField struct{}
 
 func (b BaseField) getValue() string {
-	return strings.Join([]string{F_ID_IO, F_SHORTFORMATTEDADDRESS_LO, F_LOCATION_LO}, ",")
+	return strings.Join([]string{
+		F_ID_IO,
+		F_SHORTFORMATTEDADDRESS_LO,
+		F_ADDRESSCOMPONENTS_LO,
+		F_LOCATION_LO,
+		F_DISPLAYNAME_B,
+		F_RATING_B,
+		F_BUSINESSSTATUS_B,
+		F_REGULAROPENINGHOURS_A,
+	}, ",")
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/wanrun-develop/wanrun/internal/dog/controller"
 	"github.com/wanrun-develop/wanrun/internal/dog/core/handler"
 	"github.com/wanrun-develop/wanrun/internal/dogrun/adapters/googleplace"
+	dogrunR "github.com/wanrun-develop/wanrun/internal/dogrun/adapters/repository"
 	dogrunC "github.com/wanrun-develop/wanrun/internal/dogrun/controller"
 	dogrunH "github.com/wanrun-develop/wanrun/internal/dogrun/core/handler"
 	logger "github.com/wanrun-develop/wanrun/pkg/log"
@@ -58,9 +59,10 @@ func newRouter(e *echo.Echo, dbConn *gorm.DB) {
 	dog.DELETE("/delete", dogController.DeleteDog)
 	// dog.PUT("/:dogID", dogController.UpdateDog)
 
-	dogrunConrtoller := newDogrun()
+	dogrunConrtoller := newDogrun(dbConn)
 	dogrun := e.Group("dogrun")
 	dogrun.GET("/detail/:placeId", dogrunConrtoller.GetDogrunDetail)
+	dogrun.GET("/:id", dogrunConrtoller.GetDogrun)
 }
 
 // dogの初期化
@@ -72,8 +74,9 @@ func newDog(dbConn *gorm.DB) controller.IDogController {
 	return dogController
 }
 
-func newDogrun() dogrunC.IDogrunController {
+func newDogrun(dbConn *gorm.DB) dogrunC.IDogrunController {
 	dogrunRest := googleplace.NewRest()
-	dogrunHanlder := dogrunH.NewDogrunHandler(dogrunRest)
+	dogrunRepository := dogrunR.NewDogrunRepository(dbConn)
+	dogrunHanlder := dogrunH.NewDogrunHandler(dogrunRest, dogrunRepository)
 	return dogrunC.NewDogrunController(dogrunHanlder)
 }

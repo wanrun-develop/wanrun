@@ -10,7 +10,8 @@ import (
 )
 
 type IDogrunController interface {
-	GetDogrunDetail(echo.Context) error
+	GetDogrunDetail(c echo.Context) error
+	GetDogrun(c echo.Context) error
 }
 
 type dogrunController struct {
@@ -21,6 +22,7 @@ func NewDogrunController(h handler.IDogrunHandler) IDogrunController {
 	return &dogrunController{h}
 }
 
+// ドッグラン詳細情報の取得
 func (dc *dogrunController) GetDogrunDetail(c echo.Context) error {
 	logger := log.GetLogger(c).Sugar()
 
@@ -37,4 +39,10 @@ func (dc *dogrunController) GetDogrunDetail(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, dogrun)
+}
+
+func (dc *dogrunController) GetDogrun(c echo.Context) error {
+	id := c.Param("id")
+	dc.h.GetDogrunByID(id)
+	return nil
 }
