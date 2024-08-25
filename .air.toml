@@ -7,7 +7,7 @@ tmp_dir = "tmp"
 
 [build]
 # Just plain old shell command. You could use `make` as well.
-cmd = "go build -o main ./cmd/wanrun/main.go"
+cmd = "go build -gcflags='all=-N -l' -o main ./cmd/wanrun/main.go"
 # cmd = "dlv debug --headless --listen=:8080v --api-version=2 --accept-multiclient --log --"
 
 # Binary file yields from `cmd`.
