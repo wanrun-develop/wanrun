@@ -28,7 +28,7 @@ type DogrunDetailDto struct {
 type DogrunTagDto struct {
 	DogrunTagId int    `json:"dogrun_tag_id"`
 	TagId       int    `json:"tag_id"`
-	TagIdagName string `json:"tag_idag_name"`
+	TagName     string `json:"tag_idag_name"`
 	Description string `json:"description"`
 }
 

@@ -26,7 +26,7 @@ PlaceIDで、ドッグランの取得
 func (drr *dogrunRepository) GetDogrunByPlaceID(c echo.Context, placeID string) (model.Dogrun, error) {
 	logger := log.GetLogger(c).Sugar()
 	dogrun := model.Dogrun{}
-	if err := drr.db.Where("place_id = ?", placeID).Find(&dogrun).Error; err != nil {
+	if err := drr.db.Preload("DogrunTags.TagMst").Where("place_id = ?", placeID).Find(&dogrun).Error; err != nil {
 		logger.Error(err)
 		return dogrun, err
 	}

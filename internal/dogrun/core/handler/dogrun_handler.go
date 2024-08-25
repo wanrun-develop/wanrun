@@ -83,8 +83,30 @@ func resolveDogrunDetail(dogrunG googleplace.BaseResource, dogrunD model.Dogrun)
 	dogrunDetail.OpenTime = resolveBuisnessTime(dogrunG.OpeningHours, dogrunD.OpenTime.NullTime, true)
 	dogrunDetail.CloseTime = resolveBuisnessTime(dogrunG.OpeningHours, dogrunD.CloseTime.NullTime, false)
 	dogrunDetail.Description = util.ChooseStringValidValue(dogrunD.Description, "")
+	//ドッグランタグ情報
+	dogrunDetail.DogrunTags = resolveDogrunTagInfo(dogrunD)
 
 	return dogrunDetail
+}
+
+/*
+DBからドッグランタグ情報を取得
+*/
+func resolveDogrunTagInfo(dogrunD model.Dogrun) []dto.DogrunTagDto {
+	dogrunTag := dogrunD.DogrunTags
+
+	var dogrunTagInfos []dto.DogrunTagDto
+
+	for _, v := range dogrunTag {
+		dogrunTagInfo := dto.DogrunTagDto{
+			DogrunTagId: int(v.DogrunID.Int64),
+			TagId:       int(v.TagID.Int64),
+			TagName:     v.TagMst.TagName.String,
+			Description: v.TagMst.Description.String,
+		}
+		dogrunTagInfos = append(dogrunTagInfos, dogrunTagInfo)
+	}
+	return dogrunTagInfos
 }
 
 /*
