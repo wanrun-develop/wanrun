@@ -29,6 +29,7 @@ services:
     container_name: wanrun
     ports:
       - 8080:8080
+      - 2345:2345
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
