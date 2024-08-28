@@ -51,12 +51,13 @@ func RequestLoggerMiddleware(logger *zap.Logger) echo.MiddlewareFunc {
 */
 func GetLogger(c echo.Context) *zap.Logger {
 	if logger, ok := c.Get("logger").(*zap.Logger); ok && logger != nil {
-		logger.Debug("コンテキストからloggerを取得")
+		// logger.Debug("コンテキストからloggerを取得")
 		return logger
 	}
 	requestID := c.Response().Header().Get(echo.HeaderXRequestID)
 	logger := gLogger.With(zap.String("request_id", requestID))
-	logger.Debug("コンテキストにlogerがないため、生成")
+	logger.Debug("コンテキストにlogerがないため、生成してコンテキストにセット")
+	c.Set("logger", logger) // コンテキストにロガーをセット
 	return logger
 }
 
