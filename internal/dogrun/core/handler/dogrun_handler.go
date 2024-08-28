@@ -68,23 +68,25 @@ Google情報とDB情報から、ドッグラン詳細情報を作成
 func resolveDogrunDetail(dogrunG googleplace.BaseResource, dogrunD model.Dogrun) dto.DogrunDetailDto {
 
 	// dogrunDetail := dto.DogrunDetailDto{}
-	dogrunDetail := dto.DogrunDetailDto{}
-	dogrunDetail.DogrunID = int(dogrunD.DogrunID.Int64)
-	dogrunDetail.DogrunManagerID = int(dogrunD.DogrunManagerID.Int64)
-	dogrunDetail.PlaceId = dogrunG.ID
-	dogrunDetail.Name = util.ChooseStringValidValue(dogrunD.Name, dogrunG.DisplayName.Text)
-	dogrunDetail.Address = resolveDogrunAddress(dogrunG, dogrunD)
-	dogrunDetail.Location.Latitude = dogrunG.Location.Latitude
-	dogrunDetail.Location.Longitude = dogrunG.Location.Longitude
-	dogrunDetail.BusinessStatus = dogrunG.BusinessStatus
-	dogrunDetail.NowOpen = resolveBusinessStatus(dogrunD)
-	dogrunDetail.BusinessDay = int(dogrunD.BusinessDay.Int64) // TODO: 一旦、営業日時のテーブル設計再検討
-	dogrunDetail.Holiday = int(dogrunD.Holiday.Int64)         // TODO: 一旦、営業日時のテーブル設計再検討
-	dogrunDetail.OpenTime = resolveBuisnessTime(dogrunG.OpeningHours, dogrunD.OpenTime.NullTime, true)
-	dogrunDetail.CloseTime = resolveBuisnessTime(dogrunG.OpeningHours, dogrunD.CloseTime.NullTime, false)
-	dogrunDetail.Description = util.ChooseStringValidValue(dogrunD.Description, "")
-	//ドッグランタグ情報
-	dogrunDetail.DogrunTags = resolveDogrunTagInfo(dogrunD)
+	dogrunDetail := dto.DogrunDetailDto{
+		DogrunID:        int(dogrunD.DogrunID.Int64),
+		DogrunManagerID: int(dogrunD.DogrunManagerID.Int64),
+		PlaceId:         dogrunG.ID,
+		Name:            util.ChooseStringValidValue(dogrunD.Name, dogrunG.DisplayName.Text),
+		Address:         resolveDogrunAddress(dogrunG, dogrunD),
+		Location: dto.Location{
+			Latitude:  dogrunG.Location.Latitude,
+			Longitude: dogrunG.Location.Longitude,
+		},
+		BusinessStatus: dogrunG.BusinessStatus,
+		NowOpen:        resolveBusinessStatus(dogrunD),
+		BusinessDay:    int(dogrunD.BusinessDay.Int64), // TODO: 一旦、営業日時のテーブル設計再検討
+		Holiday:        int(dogrunD.Holiday.Int64),     // TODO: 一旦、営業日時のテーブル設計再検討
+		OpenTime:       resolveBuisnessTime(dogrunG.OpeningHours, dogrunD.OpenTime.NullTime, true),
+		CloseTime:      resolveBuisnessTime(dogrunG.OpeningHours, dogrunD.CloseTime.NullTime, false),
+		Description:    util.ChooseStringValidValue(dogrunD.Description, ""),
+		DogrunTags:     resolveDogrunTagInfo(dogrunD), // ドッグランタグ情報
+	}
 
 	return dogrunDetail
 }

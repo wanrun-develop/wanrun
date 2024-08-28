@@ -6,7 +6,6 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 
-	"github.com/wanrun-develop/wanrun/configs"
 	authRepository "github.com/wanrun-develop/wanrun/internal/auth/adapters/repository"
 	authController "github.com/wanrun-develop/wanrun/internal/auth/controller"
 	authHandler "github.com/wanrun-develop/wanrun/internal/auth/core/handler"
@@ -14,7 +13,7 @@ import (
 	dogRepository "github.com/wanrun-develop/wanrun/internal/dog/adapters/repository"
 	dogController "github.com/wanrun-develop/wanrun/internal/dog/controller"
 	dogHandler "github.com/wanrun-develop/wanrun/internal/dog/core/handler"
-  "github.com/wanrun-develop/wanrun/internal/dogrun/adapters/googleplace"
+	"github.com/wanrun-develop/wanrun/internal/dogrun/adapters/googleplace"
 	dogrunR "github.com/wanrun-develop/wanrun/internal/dogrun/adapters/repository"
 	dogrunC "github.com/wanrun-develop/wanrun/internal/dogrun/controller"
 	dogrunH "github.com/wanrun-develop/wanrun/internal/dogrun/core/handler"
@@ -65,7 +64,6 @@ func newRouter(e *echo.Echo, dbConn *gorm.DB) {
 	dog.DELETE("/delete", dogController.DeleteDog)
 	// dog.PUT("/:dogID", dogController.UpdateDog)
 
-
 	dogrunConrtoller := newDogrun(dbConn)
 	dogrun := e.Group("dogrun")
 	dogrun.GET("/detail/:placeId", dogrunConrtoller.GetDogrunDetail)
@@ -86,12 +84,12 @@ func newDog(dbConn *gorm.DB) dogController.IDogController {
 	return dogController
 }
 
-
 func newDogrun(dbConn *gorm.DB) dogrunC.IDogrunController {
 	dogrunRest := googleplace.NewRest()
 	dogrunRepository := dogrunR.NewDogrunRepository(dbConn)
 	dogrunHanlder := dogrunH.NewDogrunHandler(dogrunRest, dogrunRepository)
 	return dogrunC.NewDogrunController(dogrunHanlder)
+}
 
 func newAuth(dbConn *gorm.DB) authController.IAuthController {
 	authRepository := authRepository.NewAuthRepository(dbConn)
