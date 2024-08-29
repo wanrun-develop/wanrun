@@ -23,6 +23,10 @@ func (ar *authRepository) CreateDogOwner(authDogOwner *model.AuthDogOwner) (*mod
 		if err := tx.Create(&authDogOwner.DogOwner).Error; err != nil {
 			return err
 		}
+
+		// DogOwnerが作成された後、そのIDをauthDogOwnerに設定
+		authDogOwner.DogOwnerID = authDogOwner.DogOwner.DogOwnerID
+
 		// AuthDogOwnerのレコード作成
 		if err := tx.Create(&authDogOwner).Error; err != nil {
 			return err
@@ -34,7 +38,7 @@ func (ar *authRepository) CreateDogOwner(authDogOwner *model.AuthDogOwner) (*mod
 		return nil, err
 	}
 
-	result := model.AuthDogOwner{}
+	var result model.AuthDogOwner = model.AuthDogOwner{}
 
 	// レスポンス用にDogOwner情報の取得
 	err = ar.db.Preload("DogOwner").First(&result, authDogOwner.AuthDogOwnerID).Error
@@ -42,5 +46,6 @@ func (ar *authRepository) CreateDogOwner(authDogOwner *model.AuthDogOwner) (*mod
 	if err != nil {
 		return nil, err
 	}
+
 	return &result, nil
 }
