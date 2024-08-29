@@ -25,7 +25,7 @@ func init() {
 	if err := LoadConfig(); err != nil {
 		log.Fatalf("設定ファイルの読み込みに失敗しました: %s \n", err)
 	}
-	if configChangeError != nil {
+	if CheckConfigChangeError() != nil {
 		log.Fatalf("設定ファイルの読み込みに失敗しました: %s \n", configChangeError)
 	}
 }
