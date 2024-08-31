@@ -38,7 +38,7 @@ func (ar *authRepository) CreateDogOwner(authDogOwner *model.AuthDogOwner) (*mod
 		return nil, err
 	}
 
-	var result model.AuthDogOwner = model.AuthDogOwner{}
+	result := model.AuthDogOwner{}
 
 	// レスポンス用にDogOwner情報の取得
 	err = ar.db.Preload("DogOwner").First(&result, authDogOwner.AuthDogOwnerID).Error

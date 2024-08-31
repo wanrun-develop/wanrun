@@ -33,7 +33,7 @@ func NewAuthController(ah handler.IAuthHandler) IAuthController {
 func (ac *authController) SignUp(c echo.Context) error {
 	logger := log.GetLogger(c).Sugar()
 
-	var reqADOD dto.ReqAuthDogOwnerDto = dto.ReqAuthDogOwnerDto{}
+	reqADOD := dto.ReqAuthDogOwnerDto{}
 	if err := c.Bind(&reqADOD); err != nil {
 		logger.Error(err)
 		return c.JSON(http.StatusBadRequest, errors.ErrorResponse{
