@@ -25,9 +25,13 @@ func init() {
 	if err := LoadConfig(); err != nil {
 		log.Fatalf("設定ファイルの読み込みに失敗しました: %s \n", err)
 	}
+	if CheckConfigChangeError() != nil {
+		log.Fatalf("設定ファイルの読み込みに失敗しました: %s \n", configChangeError)
+	}
 }
 
 var v *viper.Viper
+var configChangeError error
 
 /*
 viperのload
@@ -39,20 +43,24 @@ func LoadConfig() error {
 	v.AddConfigPath("./configs/")            // 設定ファイルの探索パスを指定する
 	v.AddConfigPath(".")                     // 現在のワーキングディレクトリを探索することもできる
 	if err := v.ReadInConfig(); err != nil { // 設定ファイルを探索して読み取る
-		_ = fmt.Errorf("設定ファイル読み込みエラー: %s \n", err) //ここでは停止させない
 		return err
 	}
 	v.WatchConfig()                           // 設定フィアルの変更を検知する
 	v.OnConfigChange(func(e fsnotify.Event) { // 検知時に実行する関数の設定
 		fmt.Println("設定ファイルが変更されました:", e.Name)
 		if err := v.ReadInConfig(); err != nil { // 設定ファイルを探索して読み取る
-			_ = fmt.Errorf("設定ファイル読み込みエラー: %s \n", err) //ここでは停止させない
+			configChangeError = err
 		}
 	})
 	bindEnvs()    // 環境変数
 	setDefaults() // デフォルト設定
 
 	return nil
+}
+
+// クロージャーのエラーを外に出すよう
+func CheckConfigChangeError() error {
+	return configChangeError
 }
 
 /*
@@ -65,6 +73,7 @@ func bindEnvs() {
 	_ = v.BindEnv("postgres.password", "POSTGRES_PASSWORD")
 	_ = v.BindEnv("postgres.dbname", "POSTGRES_DB")
 	_ = v.BindEnv("google.place.api.key", "GOOGLE_PLACE_API_KEY")
+	_ = v.BindEnv("os.secret.key", "SECRET_KEY") // JWT生成用の秘密鍵
 }
 
 /*
@@ -90,28 +99,27 @@ func getEnv(key string, defaultVal string) string {
 DB情報のconfig構造体の取得
 */
 func DbInfo() *DBInfoConfig {
-	config := &DBInfoConfig{
+	return &DBInfoConfig{
 		postgresUser:     v.GetString("postgres.user"),
 		postgresPassword: v.GetString("postgres.password"),
 		postgresHost:     v.GetString("postgres.host"),
 		postgresPort:     v.GetString("postgres.port"),
 		postgresDB:       v.GetString("postgres.dbname"),
 	}
-	return config
 }
-func (c *DBInfoConfig) PostgresUser() string {
+func (c DBInfoConfig) PostgresUser() string {
 	return c.postgresUser
 }
-func (c *DBInfoConfig) PostgresPassword() string {
+func (c DBInfoConfig) PostgresPassword() string {
 	return c.postgresPassword
 }
-func (c *DBInfoConfig) PostgresHost() string {
+func (c DBInfoConfig) PostgresHost() string {
 	return c.postgresHost
 }
-func (c *DBInfoConfig) PostgresPort() string {
+func (c DBInfoConfig) PostgresPort() string {
 	return c.postgresPort
 }
-func (c *DBInfoConfig) PostgresDB() string {
+func (c DBInfoConfig) PostgresDB() string {
 	return c.postgresDB
 }
 
