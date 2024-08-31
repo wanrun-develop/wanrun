@@ -1,15 +1,17 @@
 package handler
 
 import (
+	"github.com/labstack/echo/v4"
 	"github.com/wanrun-develop/wanrun/internal/auth/adapters/repository"
 	"github.com/wanrun-develop/wanrun/internal/auth/core/dto"
 	model "github.com/wanrun-develop/wanrun/internal/models"
+	"github.com/wanrun-develop/wanrun/pkg/log"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type IAuthHandler interface {
-	SignUp(authUser dto.ReqAuthDogOwnerDto) (dto.ResDogOwnerDto, error)
-	// LogIn() error
+	SignUp(c echo.Context, reqADOD dto.ReqAuthDogOwnerDto) (dto.ResDogOwnerDto, error)
+	LogIn(c echo.Context, reqADOD dto.ReqAuthDogOwnerDto) (dto.ResDogOwnerDto, error)
 	// LogOut() error
 }
 
@@ -22,10 +24,12 @@ func NewAuthHandler(ar repository.IAuthRepository) IAuthHandler {
 }
 
 // SignUp
-func (ah *authHandler) SignUp(reqADOD dto.ReqAuthDogOwnerDto) (dto.ResDogOwnerDto, error) {
+func (ah *authHandler) SignUp(c echo.Context, reqADOD dto.ReqAuthDogOwnerDto) (dto.ResDogOwnerDto, error) {
+	logger := log.GetLogger(c).Sugar()
 	// パスワードのハッシュ化
 	hash, err := bcrypt.GenerateFromPassword([]byte(reqADOD.Password), bcrypt.DefaultCost) // 一旦costをデフォルト値
 	if err != nil {
+		logger.Error(err)
 		return dto.ResDogOwnerDto{}, err
 	}
 
@@ -39,14 +43,58 @@ func (ah *authHandler) SignUp(reqADOD dto.ReqAuthDogOwnerDto) (dto.ResDogOwnerDt
 	}
 
 	// ドッグのオーナー作成
-	result, err := ah.ar.CreateDogOwner(&authDogOwner)
+	result, err := ah.ar.CreateDogOwner(c, &authDogOwner)
+
+	if err != nil {
+		logger.Error(err)
+		return dto.ResDogOwnerDto{}, err
+	}
 
 	// 作成したDogOwnerの情報を詰め替え
 	resDogOwnerDetail := dto.ResDogOwnerDto{
 		DogOwnerID: result.AuthDogOwnerID,
 	}
-	return resDogOwnerDetail, err
+
+	logger.Infof("resDogOwnerDetail: %v", resDogOwnerDetail)
+
+	return resDogOwnerDetail, nil
 }
 
-func (ah *authHandler) LogIn() error  { return nil }
+// Login
+func (ah *authHandler) LogIn(c echo.Context, reqADOD dto.ReqAuthDogOwnerDto) (dto.ResDogOwnerDto, error) {
+	logger := log.GetLogger(c).Sugar()
+	authDogOwner := model.AuthDogOwner{
+		DogOwner: model.DogOwner{
+			Email: reqADOD.Email,
+		},
+	}
+
+	logger.Infof("authDogOwner Info: %v\n", authDogOwner)
+
+	// Emailから対象のDogOwner情報の取得
+	result, err := ah.ar.GetDogOwnerByEmail(c, authDogOwner)
+
+	if err != nil {
+		logger.Error(err)
+		return dto.ResDogOwnerDto{}, err
+	}
+
+	// パスワードの確認
+	err = bcrypt.CompareHashAndPassword([]byte(result.Password), []byte(reqADOD.Password))
+
+	if err != nil {
+		logger.Error(err)
+		return dto.ResDogOwnerDto{}, err
+	}
+
+	resDogOwnerDetail := dto.ResDogOwnerDto{
+		DogOwnerID: result.DogOwnerID,
+	}
+
+	logger.Infof("resDogOwnerDetail: %v", resDogOwnerDetail)
+
+	return resDogOwnerDetail, nil
+}
+
+// Logout
 func (ah *authHandler) LogOut() error { return nil }

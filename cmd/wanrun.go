@@ -72,6 +72,7 @@ func newRouter(e *echo.Echo, dbConn *gorm.DB) {
 	authController := newAuth(dbConn)
 	auth := e.Group("auth")
 	auth.POST("/signUp", authController.SignUp)
+	auth.POST("/login", authController.LogIn)
 
 }
 
