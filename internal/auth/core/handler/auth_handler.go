@@ -26,9 +26,11 @@ func NewAuthHandler(ar repository.IAuthRepository) IAuthHandler {
 // SignUp
 func (ah *authHandler) SignUp(c echo.Context, reqADOD dto.ReqAuthDogOwnerDto) (dto.ResDogOwnerDto, error) {
 	logger := log.GetLogger(c).Sugar()
-	// パスワードのハッシュ化
+	
+  // パスワードのハッシュ化
 	hash, err := bcrypt.GenerateFromPassword([]byte(reqADOD.Password), bcrypt.DefaultCost) // 一旦costをデフォルト値
-	if err != nil {
+	
+  if err != nil {
 		logger.Error(err)
 		return dto.ResDogOwnerDto{}, err
 	}

@@ -77,6 +77,6 @@ func (ar *authRepository) GetDogOwnerByEmail(c echo.Context, authDogOwner model.
 	}
 
 	logger.Infof("Query Result: %v\n", result)
-
+  
 	return &result, nil
 }
