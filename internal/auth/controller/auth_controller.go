@@ -48,8 +48,8 @@ func (ac *authController) SignUp(c echo.Context) error {
 
 	// メール重複の場合
 	if err.Error() == "Email already exists" {
-		return c.JSON(http.StatusConflict, errors.ErrorResponse{
-			Code:    http.StatusConflict,
+		return c.JSON(http.StatusBadRequest, errors.ErrorResponse{
+			Code:    http.StatusBadRequest,
 			Message: "Email is already in use. Please use a different email.",
 		})
 	}
