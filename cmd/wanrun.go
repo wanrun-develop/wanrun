@@ -46,6 +46,9 @@ func Main() {
 	e.Use(middleware.RequestID())
 	e.Use(logger.RequestLoggerMiddleware(zap))
 
+	// CORSの設定
+	e.Use(middleware.CORS())
+
 	// Router設定
 	newRouter(e, dbConn)
 	e.GET("/test", logger.Test)
