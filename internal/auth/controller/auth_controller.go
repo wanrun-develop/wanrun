@@ -34,6 +34,7 @@ func (ac *authController) SignUp(c echo.Context) error {
 	logger := log.GetLogger(c).Sugar()
 
 	reqADOD := dto.ReqAuthDogOwnerDto{}
+
 	if err := c.Bind(&reqADOD); err != nil {
 		logger.Error(err)
 		return c.JSON(http.StatusBadRequest, errors.ErrorResponse{
@@ -43,15 +44,25 @@ func (ac *authController) SignUp(c echo.Context) error {
 	}
 
 	// dogOwnerのSignUp
-	resAuthDogOwner, err := ac.ah.SignUp(reqADOD)
+	resAuthDogOwner, err := ac.ah.SignUp(c, reqADOD)
+
+	// メール重複の場合
+	// TODO：ミドルウェアの実装で修正する
 	if err != nil {
+		if err.Error() == "Email already exists" {
+			logger.Error(err.Error())
+			return c.JSON(http.StatusBadRequest, errors.ErrorResponse{
+				Code:    http.StatusBadRequest,
+				Message: "Email is already in use. Please use a different email.",
+			})
+		}
+
 		logger.Error(err)
 		return c.JSON(http.StatusInternalServerError, errors.ErrorResponse{
 			Code:    http.StatusInternalServerError,
 			Message: "Failed to register dog owner information",
 		})
 	}
-
 	// 秘密鍵取得
 	secretKey := configs.FetchCondigStr("os.secret.key")
 
@@ -94,5 +105,46 @@ func createToken(secretKey string, resAuthDogOwnerID uint, expTime int) (string,
 	return signedToken, nil
 }
 
-func (ac *authController) LogIn(c echo.Context) error  { return nil }
+func (ac *authController) LogIn(c echo.Context) error {
+	logger := log.GetLogger(c).Sugar()
+	var reqADOD dto.ReqAuthDogOwnerDto = dto.ReqAuthDogOwnerDto{}
+
+	if err := c.Bind(&reqADOD); err != nil {
+		logger.Error(err)
+		return c.JSON(http.StatusBadRequest, errors.ErrorResponse{
+			Code:    http.StatusBadRequest,
+			Message: "Invalid format",
+		})
+	}
+	logger.Infof("Request AuthDogOwner info: %v\n", reqADOD)
+
+	// LogIn処理
+	resAuthDogOwner, err := ac.ah.LogIn(c, reqADOD)
+
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, errors.ErrorResponse{
+			Code:    http.StatusBadRequest,
+			Message: "Invalid Request",
+		})
+	}
+
+	// 秘密鍵取得
+	secretKey := configs.FetchCondigStr("os.secret.key")
+
+	// jwt token生成
+	signedToken, err := createToken(secretKey, resAuthDogOwner.DogOwnerID, 72)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, errors.ErrorResponse{
+			Code:    http.StatusInternalServerError,
+			Message: "Failed to sign token",
+		})
+	}
+
+	return c.JSON(http.StatusCreated, success.SuccessResponse{
+		Code:    http.StatusOK,
+		Message: "Successful login",
+		Token:   signedToken,
+	})
+}
+
 func (ac *authController) LogOut(c echo.Context) error { return nil }

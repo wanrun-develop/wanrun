@@ -8,7 +8,7 @@ ENV CGO_ENABLED=0
 ENV GOOS=linux
 ENV GOARCH=amd64
 ENV ROOTPATH=/app
-ENV PATH="PATH=$PATH:/go/bin/linux_amd64"
+ENV PATH=$PATH:/go/bin/linux_amd64
 
 WORKDIR ${ROOTPATH}
 
