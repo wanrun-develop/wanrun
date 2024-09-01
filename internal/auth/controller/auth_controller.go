@@ -47,21 +47,22 @@ func (ac *authController) SignUp(c echo.Context) error {
 	resAuthDogOwner, err := ac.ah.SignUp(c, reqADOD)
 
 	// メール重複の場合
-	if err.Error() == "Email already exists" {
-		return c.JSON(http.StatusBadRequest, errors.ErrorResponse{
-			Code:    http.StatusBadRequest,
-			Message: "Email is already in use. Please use a different email.",
-		})
-	}
-
+	// TODO：ミドルウェアの実装で修正する
 	if err != nil {
+		if err.Error() == "Email already exists" {
+			logger.Error(err.Error())
+			return c.JSON(http.StatusBadRequest, errors.ErrorResponse{
+				Code:    http.StatusBadRequest,
+				Message: "Email is already in use. Please use a different email.",
+			})
+		}
+
 		logger.Error(err)
 		return c.JSON(http.StatusInternalServerError, errors.ErrorResponse{
 			Code:    http.StatusInternalServerError,
 			Message: "Failed to register dog owner information",
 		})
 	}
-
 	// 秘密鍵取得
 	secretKey := configs.FetchCondigStr("os.secret.key")
 

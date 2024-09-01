@@ -35,7 +35,7 @@ func (ar *authRepository) CreateDogOwner(c echo.Context, authDogOwner *model.Aut
 	}
 	if emailExistingCount > 0 {
 		logger.Info("Email already exists")
-		return nil, errors.New("Email already exists")
+		return nil, errors.New("email already exists")
 	}
 
 	// トランザクションの開始
@@ -64,7 +64,7 @@ func (ar *authRepository) CreateDogOwner(c echo.Context, authDogOwner *model.Aut
 
 	logger.Infof("Created DogOwner Detail: %v", authDogOwner)
 
-	var result model.AuthDogOwner = model.AuthDogOwner{}
+	result := model.AuthDogOwner{}
 
 	// レスポンス用にDogOwner情報の取得
 	err = ar.db.Preload("DogOwner").First(&result, authDogOwner.AuthDogOwnerID).Error
