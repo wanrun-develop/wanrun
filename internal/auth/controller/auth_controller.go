@@ -35,7 +35,7 @@ func (ac *authController) SignUp(c echo.Context) error {
 
 	reqADOD := dto.ReqAuthDogOwnerDto{}
 
-  if err := c.Bind(&reqADOD); err != nil {
+	if err := c.Bind(&reqADOD); err != nil {
 		logger.Error(err)
 		return c.JSON(http.StatusBadRequest, errors.ErrorResponse{
 			Code:    http.StatusBadRequest,
@@ -45,6 +45,14 @@ func (ac *authController) SignUp(c echo.Context) error {
 
 	// dogOwnerのSignUp
 	resAuthDogOwner, err := ac.ah.SignUp(c, reqADOD)
+
+	// メール重複の場合
+	if err.Error() == "Email already exists" {
+		return c.JSON(http.StatusBadRequest, errors.ErrorResponse{
+			Code:    http.StatusBadRequest,
+			Message: "Email is already in use. Please use a different email.",
+		})
+	}
 
 	if err != nil {
 		logger.Error(err)
