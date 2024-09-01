@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"errors"
+
 	"github.com/labstack/echo/v4"
 	model "github.com/wanrun-develop/wanrun/internal/models"
 	"github.com/wanrun-develop/wanrun/pkg/log"
@@ -23,10 +25,24 @@ func NewAuthRepository(db *gorm.DB) IAuthRepository {
 func (ar *authRepository) CreateDogOwner(c echo.Context, authDogOwner *model.AuthDogOwner) (*model.AuthDogOwner, error) {
 	logger := log.GetLogger(c).Sugar()
 
-	err := ar.db.Transaction(func(tx *gorm.DB) error {
+	// Email重複のvalidate
+	var emailExistingCount int64
+	err := ar.db.Model(&model.DogOwner{}).Where("email = ?", authDogOwner.DogOwner.Email).Count(&emailExistingCount).Error
+
+	if err != nil {
+		logger.Error("Failed to check existing email: ", err)
+		return nil, err
+	}
+	if emailExistingCount > 0 {
+		logger.Info("Email already exists")
+		return nil, errors.New("Email already exists")
+	}
+
+	// トランザクションの開始
+	err = ar.db.Transaction(func(tx *gorm.DB) error {
 		// DogOwnerのレコード作成
 		if err := tx.Create(&authDogOwner.DogOwner).Error; err != nil {
-			logger.Error(err)
+			logger.Error("Failed to DogOwner: ", err)
 			return err
 		}
 
@@ -35,14 +51,14 @@ func (ar *authRepository) CreateDogOwner(c echo.Context, authDogOwner *model.Aut
 
 		// AuthDogOwnerのレコード作成
 		if err := tx.Create(&authDogOwner).Error; err != nil {
-			logger.Error(err)
+			logger.Error("Failed to AuthDogOwner: ", err)
 			return err
 		}
 		return nil
 	})
 
 	if err != nil {
-		logger.Error(err)
+		logger.Error("Transaction failed: ", err)
 		return nil, err
 	}
 
@@ -77,6 +93,6 @@ func (ar *authRepository) GetDogOwnerByEmail(c echo.Context, authDogOwner model.
 	}
 
 	logger.Infof("Query Result: %v\n", result)
-  
+
 	return &result, nil
 }
