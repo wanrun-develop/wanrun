@@ -12,9 +12,11 @@ ENV PATH=$PATH:/go/bin/linux_amd64
 
 WORKDIR ${ROOTPATH}
 
+RUN go install github.com/go-delve/delve/cmd/dlv@latest
 RUN go install github.com/air-verse/air@latest
 COPY go.mod go.sum .air.toml ./
 RUN go mod download
+ENV PATH=$PATH:/usr/local/go/bin:$GOPATH/bin
 
 COPY . .
 EXPOSE 8080
