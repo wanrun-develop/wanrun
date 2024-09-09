@@ -6,6 +6,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 
+	"github.com/wanrun-develop/wanrun/internal"
 	authRepository "github.com/wanrun-develop/wanrun/internal/auth/adapters/repository"
 	authController "github.com/wanrun-develop/wanrun/internal/auth/controller"
 	authHandler "github.com/wanrun-develop/wanrun/internal/auth/core/handler"
@@ -18,6 +19,7 @@ import (
 	dogrunC "github.com/wanrun-develop/wanrun/internal/dogrun/controller"
 	dogrunH "github.com/wanrun-develop/wanrun/internal/dogrun/core/handler"
 
+	"github.com/wanrun-develop/wanrun/pkg/errors"
 	logger "github.com/wanrun-develop/wanrun/pkg/log"
 	"gorm.io/gorm"
 )
@@ -45,13 +47,14 @@ func Main() {
 	// ミドルウェアを登録
 	e.Use(middleware.RequestID())
 	e.Use(logger.RequestLoggerMiddleware(zap))
+	e.HTTPErrorHandler = errors.HttpErrorHandler
 
 	// CORSの設定
 	e.Use(middleware.CORS())
 
 	// Router設定
 	newRouter(e, dbConn)
-	e.GET("/test", logger.Test)
+	e.GET("/test", internal.Test)
 
 	e.Logger.Fatal(e.Start(":8080"))
 }
