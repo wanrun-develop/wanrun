@@ -13,7 +13,7 @@ func Test(c echo.Context) error {
 	logger := log.GetLogger(c).Sugar()
 	logger.Info("Test*()の実行. ")
 	if err := testError(); err != nil {
-		err = errors.NewWRError(err, "エラー再生成しました。", errors.NewAuthClientErrorType())
+		err = errors.NewWRError(err, "エラー再生成しました。", errors.NewAuthClientErrorEType())
 		logger.Error(err)
 		return err
 	}
@@ -24,7 +24,7 @@ func testError() error {
 	file := "xxx/xxx"
 	_, err := os.Open(file)
 	if err != nil {
-		err := errors.NewWRError(err, "エラー発生: entityFuncのファイル読み込み", errors.NewAuthClientErrorType())
+		err := errors.NewWRError(err, "エラー発生: entityFuncのファイル読み込み", errors.NewAuthClientErrorEType())
 		return err
 	}
 	return nil

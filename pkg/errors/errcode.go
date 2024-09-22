@@ -3,10 +3,10 @@ package errors
 import "fmt"
 
 const (
-	AUTH     int = 1
-	DOG      int = 2
-	DOGOWNER int = 3
-	DOGRUN   int = 4
+	AUTH      int = 1
+	DOG       int = 2
+	DOG_OWNER int = 3
+	DOGRUN    int = 4
 )
 
 const (
@@ -14,68 +14,68 @@ const (
 	SERVER int = 2
 )
 
-type Type struct {
-	Service   int
-	ErrorType int
+type eType struct {
+	service   int
+	errorType int
 }
 
 /*
 認証機能のクライアントエラー
 */
-func NewAuthClientErrorType() Type {
-	return Type{AUTH, CLIENT}
+func NewAuthClientErrorEType() eType {
+	return eType{AUTH, CLIENT}
 }
 
 /*
 認証機能のサーバーエラー
 */
-func NewAuthSeverErrorType() Type {
-	return Type{AUTH, SERVER}
+func NewAuthSeverErrorEType() eType {
+	return eType{AUTH, SERVER}
 }
 
 /*
 ドッグ機能のクライアントエラー
 */
-func NewDogClientErrorType() Type {
-	return Type{DOG, CLIENT}
+func NewDogClientErrorEType() eType {
+	return eType{DOG, CLIENT}
 }
 
 /*
 ドッグ機能のサーバーエラー
 */
-func NewDogServerErrorType() Type {
-	return Type{DOG, SERVER}
+func NewDogServerErrorEType() eType {
+	return eType{DOG, SERVER}
 }
 
 /*
 ドッグオーナー機能のクライアントエラー
 */
-func NewDogownerClientErrorType() Type {
-	return Type{DOGOWNER, CLIENT}
+func NewDogownerClientErrorEType() eType {
+	return eType{DOG_OWNER, CLIENT}
 }
 
 /*
 ドッグオーナー機能のサーバーエラー
 */
-func NewDogownerServerErrorType() Type {
-	return Type{DOGOWNER, SERVER}
+func NewDogownerServerErrorEType() eType {
+	return eType{DOG_OWNER, SERVER}
 }
 
 /*
 ドッグラン機能のクライアントエラー
 */
-func NewDogrunClientErrorType() Type {
-	return Type{DOGRUN, CLIENT}
+func NewDogrunClientErrorEType() eType {
+	return eType{DOGRUN, CLIENT}
 }
 
 /*
 ドッグラン機能のサーバーエラー
 */
-func NewDogrunServerErrorType() Type {
-	return Type{DOGRUN, SERVER}
+func NewDogrunServerErrorEType() eType {
+	return eType{DOGRUN, SERVER}
 }
 
-func (t Type) String() string {
+func (t eType) String() string {
 	// カスタムフォーマットで文字列を返す
-	return fmt.Sprintf("%d-%d", t.Service, t.ErrorType)
+	return fmt.Sprintf("%d-%d", t.service, t.errorType)
 }
