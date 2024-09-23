@@ -14,68 +14,68 @@ const (
 	SERVER int = 2
 )
 
-type Type struct {
-	Service   int
-	ErrorType int
+type errorContext struct {
+	service   int
+	errorType int
 }
 
 /*
 認証機能のクライアントエラー
 */
-func NewAuthClientErrorType() Type {
-	return Type{AUTH, CLIENT}
+func NewAuthClientErrorType() errorContext {
+	return errorContext{AUTH, CLIENT}
 }
 
 /*
 認証機能のサーバーエラー
 */
-func NewAuthSeverErrorType() Type {
-	return Type{AUTH, SERVER}
+func NewAuthSeverErrorType() errorContext {
+	return errorContext{AUTH, SERVER}
 }
 
 /*
 ドッグ機能のクライアントエラー
 */
-func NewDogClientErrorType() Type {
-	return Type{DOG, CLIENT}
+func NewDogClientErrorType() errorContext {
+	return errorContext{DOG, CLIENT}
 }
 
 /*
 ドッグ機能のサーバーエラー
 */
-func NewDogServerErrorType() Type {
-	return Type{DOG, SERVER}
+func NewDogServerErrorType() errorContext {
+	return errorContext{DOG, SERVER}
 }
 
 /*
 ドッグオーナー機能のクライアントエラー
 */
-func NewDogownerClientErrorType() Type {
-	return Type{DOGOWNER, CLIENT}
+func NewDogownerClientErrorType() errorContext {
+	return errorContext{DOGOWNER, CLIENT}
 }
 
 /*
 ドッグオーナー機能のサーバーエラー
 */
-func NewDogownerServerErrorType() Type {
-	return Type{DOGOWNER, SERVER}
+func NewDogownerServerErrorType() errorContext {
+	return errorContext{DOGOWNER, SERVER}
 }
 
 /*
 ドッグラン機能のクライアントエラー
 */
-func NewDogrunClientErrorType() Type {
-	return Type{DOGRUN, CLIENT}
+func NewDogrunClientErrorType() errorContext {
+	return errorContext{DOGRUN, CLIENT}
 }
 
 /*
 ドッグラン機能のサーバーエラー
 */
-func NewDogrunServerErrorType() Type {
-	return Type{DOGRUN, SERVER}
+func NewDogrunServerErrorType() errorContext {
+	return errorContext{DOGRUN, SERVER}
 }
 
-func (t Type) String() string {
+func (t errorContext) String() string {
 	// カスタムフォーマットで文字列を返す
-	return fmt.Sprintf("%d-%d", t.Service, t.ErrorType)
+	return fmt.Sprintf("%d-%d", t.service, t.errorType)
 }

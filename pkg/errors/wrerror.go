@@ -9,26 +9,26 @@ import (
 
 // 認証型エラーコード
 const (
-	UnAuthorizedCode = "1-1-c"
+	Un_AUTHORIZED_CODE string = "1-1-c"
 )
 
-type WRError struct {
-	Type       Type
-	CauseBy    string
-	Msg        string
-	InnerError error
+type wrError struct {
+	errorContext errorContext
+	causeBy      string
+	msg          string
+	innerError   error
 }
 
-func (me *WRError) Error() string {
-	return fmt.Sprintf("wanrun error: code[%s], message[%s]", me.Type, me.Msg)
+func (me *wrError) Error() string {
+	return fmt.Sprintf("wanrun error: code[%s], message[%s]", me.errorContext, me.msg)
 }
 
-func (e WRError) Format(f fmt.State, c rune) {
+func (e wrError) Format(f fmt.State, c rune) {
 	switch c {
 	case 'v':
-		fmt.Fprintf(f, "  code[%s]", e.Type)
-		fmt.Fprintf(f, "  message: %s", e.Msg)
-		fmt.Fprintf(f, " ->causeBy: %s", e.CauseBy)
+		fmt.Fprintf(f, "  code[%s]", e.errorContext)
+		fmt.Fprintf(f, "  message: %s", e.msg)
+		fmt.Fprintf(f, " ->causeBy: %s", e.causeBy)
 	default:
 		fmt.Fprintf(f, "%v", string(c))
 	}
@@ -38,15 +38,15 @@ func (e WRError) Format(f fmt.State, c rune) {
 エラー生成
 すでにWRErrorの場合は、そのまま返す
 */
-func NewWRError(err error, msg string, ErrorType Type) *WRError {
-	if me, ok := err.(*WRError); ok {
+func NewWRError(err error, msg string, errorContext errorContext) *wrError {
+	if me, ok := err.(*wrError); ok {
 		return me
 	}
-	return &WRError{
-		Type:       ErrorType,
-		CauseBy:    err.Error(),
-		Msg:        msg,
-		InnerError: err,
+	return &wrError{
+		errorContext: errorContext,
+		causeBy:      err.Error(),
+		msg:          msg,
+		innerError:   err,
 	}
 }
 
@@ -56,16 +56,16 @@ func NewWRError(err error, msg string, ErrorType Type) *WRError {
 func HttpErrorHandler(err error, c echo.Context) {
 	code := 500
 
-	var me *WRError
-	if wreer, ok := err.(*WRError); ok {
+	var me *wrError
+	if wreer, ok := err.(*wrError); ok {
 		me = wreer
 		code = mappingError(me)
 	}
 
 	res := ErrorRes{
-		Code:       me.Type.String(),
-		Message:    me.Msg,
-		StackTrace: me.CauseBy,
+		Code:       me.errorContext.String(),
+		Message:    me.msg,
+		StackTrace: me.causeBy,
 	}
 
 	if !c.Response().Committed {
@@ -86,13 +86,13 @@ func HttpErrorHandler(err error, c echo.Context) {
 /*
 内部エラーコードどHTTPエラーコードのマッピング
 */
-func mappingError(err *WRError) int {
-	errorType := err.Type
+func mappingError(err *wrError) int {
+	errorContext := err.errorContext
 
 	var httpCode int
-	switch errorType.ErrorType {
+	switch errorContext.errorType {
 	case CLIENT:
-		switch errorType.Service {
+		switch errorContext.service {
 		case AUTH:
 			httpCode = http.StatusUnauthorized //401
 		default:
