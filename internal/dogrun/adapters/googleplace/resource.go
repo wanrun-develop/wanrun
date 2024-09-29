@@ -18,7 +18,7 @@ type BaseResource struct {
 	DisplayName           LocalizedText      `json:"displayName"`
 	Rating                float32            `json:"rating"`
 	BusinessStatus        string             `json:"businessStatus"`
-	OpeningHours          OpeningHours       `json:"regularOpeningHours"`
+	OpeningHours          *OpeningHours      `json:"regularOpeningHours"`
 }
 
 type LocalizedText struct {

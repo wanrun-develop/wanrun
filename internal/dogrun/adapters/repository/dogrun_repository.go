@@ -8,7 +8,7 @@ import (
 )
 
 type IDogrunRepository interface {
-	GetDogrunByPlaceID(c echo.Context, placeID string) (model.Dogrun, error)
+	GetDogrunByPlaceID(c echo.Context, placeID string) (*model.Dogrun, error)
 	GetDogrunByID(id string) (model.Dogrun, error)
 }
 
@@ -23,12 +23,12 @@ func NewDogrunRepository(db *gorm.DB) IDogrunRepository {
 /*
 PlaceIDで、ドッグランの取得
 */
-func (drr *dogrunRepository) GetDogrunByPlaceID(c echo.Context, placeID string) (model.Dogrun, error) {
+func (drr *dogrunRepository) GetDogrunByPlaceID(c echo.Context, placeID string) (*model.Dogrun, error) {
 	logger := log.GetLogger(c).Sugar()
-	dogrun := model.Dogrun{}
-	if err := drr.db.Preload("DogrunTags.TagMst").Where("place_id = ?", placeID).Find(&dogrun).Error; err != nil {
+	dogrun := &model.Dogrun{}
+	if err := drr.db.Preload("DogrunTags.TagMst").Where("place_id = ?", placeID).Find(dogrun).Error; err != nil {
 		logger.Error(err)
-		return dogrun, err
+		return nil, err
 	}
 	return dogrun, nil
 }
