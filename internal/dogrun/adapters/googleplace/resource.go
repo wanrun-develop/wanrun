@@ -5,6 +5,11 @@ type Location struct {
 	Longitude float64 `json:"longitude"`
 }
 
+type SearchTextBaseResource struct {
+	Places        []BaseResource `json:"places"`
+	NextPageToken *string        `json:"nextPageToken"`
+}
+
 type BaseResource struct {
 	ID                    string             `json:"id"`
 	Location              Location           `json:"location"`

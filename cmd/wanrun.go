@@ -46,8 +46,8 @@ func Main() {
 
 	// ミドルウェアを登録
 	e.Use(middleware.RequestID())
-	e.Use(logger.RequestLoggerMiddleware(zap))
 	e.HTTPErrorHandler = errors.HttpErrorHandler
+	e.Use(logger.RequestLoggerMiddleware(zap))
 
 	// CORSの設定
 	e.Use(middleware.CORS())
@@ -74,6 +74,7 @@ func newRouter(e *echo.Echo, dbConn *gorm.DB) {
 	dogrun := e.Group("dogrun")
 	dogrun.GET("/detail/:placeId", dogrunConrtoller.GetDogrunDetail)
 	dogrun.GET("/:id", dogrunConrtoller.GetDogrun)
+	dogrun.POST("/search", dogrunConrtoller.SearchAroundDogruns)
 
 	authController := newAuth(dbConn)
 	auth := e.Group("auth")

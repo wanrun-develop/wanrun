@@ -7,6 +7,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"github.com/wanrun-develop/wanrun/internal/dogrun/adapters/googleplace"
 	"github.com/wanrun-develop/wanrun/internal/dogrun/adapters/repository"
@@ -16,9 +17,14 @@ import (
 	"github.com/wanrun-develop/wanrun/pkg/util"
 )
 
+const (
+	SEARCH_TEXT_MAX_REQUEST_TIMES = 3 //searchTextの最大リクエスト数。pageSizeを20に指定すると、20*3=60個まで取得する
+)
+
 type IDogrunHandler interface {
-	GetDogrunDetail(c echo.Context, palceId string) (*dto.DogrunDetailDto, error)
-	GetDogrunByID(id string)
+	GetDogrunDetail(echo.Context, string) (*dto.DogrunDetailDto, error)
+	GetDogrunByID(string)
+	SearchAroundDogruns(echo.Context, dto.SearchAroudRectangleCondition) ([]googleplace.BaseResource, error)
 }
 
 type dogrunHandler struct {
@@ -192,4 +198,67 @@ func resolveBuisnessTime(openingHousr googleplace.OpeningHours, timeD sql.NullTi
 
 func (h *dogrunHandler) GetDogrunByID(id string) {
 	fmt.Println(h.drr.GetDogrunByID(id))
+}
+
+/*
+指定範囲内のドッグラン検索
+*/
+func (h *dogrunHandler) SearchAroundDogruns(c echo.Context, condition dto.SearchAroudRectangleCondition) ([]googleplace.BaseResource, error) {
+	logger := log.GetLogger(c).Sugar()
+	logger.Debugw("検索条件", "condition", condition)
+
+	payload := googleplace.ConvertReqToSearchTextPayload(condition)
+	// バリデータのインスタンス作成
+	validate := validator.New()
+	// カスタムバリデーションルールの登録
+	_ = validate.RegisterValidation("latitude", dto.VLatitude)
+	_ = validate.RegisterValidation("longitude", dto.VLongitude)
+	logger.Infow("リクエストボディ", "payload", payload)
+
+	//base情報のFieldを使用
+	var baseFiled googleplace.IFieldMask = googleplace.BaseField{}
+
+	//place情報の取得
+	dogrunG, err := h.searchTextUpToSpecifiedTimes(c, payload, baseFiled)
+	if err != nil {
+		return nil, err
+	}
+	logger.Infow("レスポンス", "response", dogrunG)
+	return dogrunG, nil
+}
+
+/*
+searchTextを指定上限回数まで実行する
+条件：nextPageTokenが含まれている && リクエスト上限回数を超えていないこと
+*/
+func (h *dogrunHandler) searchTextUpToSpecifiedTimes(c echo.Context, payload googleplace.SearchTextPayLoad, fields googleplace.IFieldMask) ([]googleplace.BaseResource, error) {
+	logger := log.GetLogger(c).Sugar()
+	var dogruns []googleplace.BaseResource
+
+	var times int
+	for {
+		times++
+		res, err := h.rest.POSTSearchText(c, payload, fields)
+		if err != nil {
+			return nil, err
+		}
+		// JSONデータを構造体にデコード
+		var searchTextRes googleplace.SearchTextBaseResource
+		err = json.Unmarshal(res, &searchTextRes)
+		if err != nil {
+			logger.Error(err)
+			return nil, err
+		}
+		logger.Infow(fmt.Sprintf("レスポンス-%d", times), "response", searchTextRes)
+		dogruns = append(dogruns, searchTextRes.Places...)
+
+		//nextPageTokenがない時 or リクエスト上限に達した時
+		if searchTextRes.NextPageToken == nil || times > SEARCH_TEXT_MAX_REQUEST_TIMES {
+			break
+		}
+
+		payload.PageToken = *searchTextRes.NextPageToken
+	}
+
+	return dogruns, nil
 }

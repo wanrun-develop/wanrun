@@ -38,6 +38,7 @@ services:
       POSTGRES_PORT: ${POSTGRES_PORT}
       GO_ENV: ${GO_ENV}
       SECRET_KEY: ${SECRET_KEY}
+      GOOGLE_PLACE_API_KEY: ${GOOGLE_PLACE_API_KEY}
     depends_on:
       postgres:
         condition: service_healthy
