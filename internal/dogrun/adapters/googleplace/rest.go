@@ -3,7 +3,6 @@ package googleplace
 import (
 	"bytes"
 	"encoding/json"
-	perrors "errors"
 	"io"
 	"net/http"
 	"time"
@@ -194,7 +193,7 @@ func exec(c echo.Context, req *http.Request) (*http.Response, error) {
 
 	if err != nil {
 		logger.Sugar().Error(err)
-		return nil, err
+		return nil, errors.NewWRError(err, "リクエスト失敗", errors.NewDogrunServerErrorEType())
 	}
 
 	// レスポンスのステータスコードに応じてエラーハンドリング
@@ -204,6 +203,8 @@ func exec(c echo.Context, req *http.Request) (*http.Response, error) {
 
 		//ハンドリング
 		switch resp.StatusCode {
+		case http.StatusBadRequest:
+			logger.Error("google place api RESPONSE is Bad Request", zap.Int("api_response_status_code", resp.StatusCode), zap.String("api_response_body", bodyString))
 		case http.StatusForbidden:
 			logger.Error("google place api RESPONSE is Request forbidden", zap.Int("api_response_status_code", resp.StatusCode), zap.String("api_response_body", bodyString))
 		case http.StatusNotFound:
@@ -213,7 +214,7 @@ func exec(c echo.Context, req *http.Request) (*http.Response, error) {
 		default:
 			logger.Error("google place api RESPONSE is Unexpected error", zap.Int("api_response_status_code", resp.StatusCode), zap.String("api_response_body", bodyString))
 		}
-		return nil, perrors.New("failed to exec google palce api")
+		return nil, errors.NewWRError(nil, "Google API リクエスト失敗", errors.NewDogrunServerErrorEType())
 	} else {
 		// ステータスコードが200 OKの場合
 		logger.Info("google place api Request is successful")

@@ -35,10 +35,7 @@ func (dc *dogrunController) GetDogrunDetail(c echo.Context) error {
 
 	dogrun, err := dc.h.GetDogrunDetail(c, placeId)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, errors.ErrorResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Failed to retrieve dog run information",
-		})
+		return err
 	}
 
 	return c.JSON(http.StatusOK, dogrun)
@@ -74,10 +71,7 @@ func (dc *dogrunController) SearchAroundDogruns(c echo.Context) error {
 
 	dogruns, err := dc.h.SearchAroundDogruns(c, condition)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, errors.ErrorResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Failed to retrieve dog run information",
-		})
+		return err
 	}
 	return c.JSON(http.StatusOK, dogruns)
 }

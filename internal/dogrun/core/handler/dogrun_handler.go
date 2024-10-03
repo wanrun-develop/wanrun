@@ -25,7 +25,7 @@ const (
 type IDogrunHandler interface {
 	GetDogrunDetail(echo.Context, string) (*dto.DogrunDetailDto, error)
 	GetDogrunByID(string)
-	SearchAroundDogruns(echo.Context, dto.SearchAroudRectangleCondition) ([]googleplace.BaseResource, error)
+	SearchAroundDogruns(echo.Context, dto.SearchAroudRectangleCondition) ([]dto.DogrunDetailDto, error)
 }
 
 type dogrunHandler struct {
@@ -76,17 +76,24 @@ func (h *dogrunHandler) GetDogrunDetail(c echo.Context, placeID string) (*dto.Do
 Google情報とDB情報から、ドッグラン詳細情報を作成
 基本的に、DB情報をドッグランマネージャーからの手動更新がある前提で、優先情報とする
 */
-func resolveDogrunDetail(dogrunG googleplace.BaseResource, dogrunD *model.Dogrun) dto.DogrunDetailDto {
+func resolveDogrunDetail(dogrunG googleplace.BaseResource, dogrunD model.Dogrun) dto.DogrunDetailDto {
 	var dogrunDetail dto.DogrunDetailDto
 
-	if dogrunD == nil {
+	if dogrunD.IsEmpty() && dogrunG.IsNotEmpty() {
 		return resolveDogrunDetailByOnlyGoogle(dogrunG)
+	} else if dogrunD.IsNotEmpty() && dogrunG.IsEmpty() {
+		return resolveDogrunDetailByOnlyDB(dogrunD)
+	}
+
+	var dogrunManager int
+	if dogrunD.DogrunManagerID.Valid {
+		dogrunManager = int(dogrunD.DogrunManagerID.Int64)
 	}
 
 	// dogrunDetail := dto.DogrunDetailDto{}
 	dogrunDetail = dto.DogrunDetailDto{
 		DogrunID:        int(dogrunD.DogrunID.Int64),
-		DogrunManagerID: int(dogrunD.DogrunManagerID.Int64),
+		DogrunManagerID: dogrunManager,
 		PlaceId:         dogrunG.ID,
 		Name:            util.ChooseStringValidValue(dogrunD.Name, dogrunG.DisplayName.Text),
 		Address:         resolveDogrunAddress(dogrunG, dogrunD),
@@ -98,10 +105,13 @@ func resolveDogrunDetail(dogrunG googleplace.BaseResource, dogrunD *model.Dogrun
 		NowOpen:        resolveNowOpening(dogrunG, dogrunD),
 		BusinessDay:    int(dogrunD.BusinessDay.Int64), // TODO: 一旦、営業日時のテーブル設計再検討
 		Holiday:        int(dogrunD.Holiday.Int64),     // TODO: 一旦、営業日時のテーブル設計再検討
-		OpenTime:       resolveBuisnessTime(dogrunG.OpeningHours, dogrunD, true),
-		CloseTime:      resolveBuisnessTime(dogrunG.OpeningHours, dogrunD, false),
+		OpenTime:       resolveBuisnessTime(dogrunG, dogrunD, true),
+		CloseTime:      resolveBuisnessTime(dogrunG, dogrunD, false),
 		Description:    util.ChooseStringValidValue(dogrunD.Description, ""),
-		DogrunTags:     resolveDogrunTagInfo(*dogrunD), // ドッグランタグ情報
+		GoogleRating:   dogrunG.Rating,
+		DogrunTags:     resolveDogrunTagInfo(dogrunD), // ドッグランタグ情報
+		CreateAt:       &dogrunD.CreateAt.Time,
+		UpdateAt:       &dogrunD.UpdateAt.Time,
 	}
 
 	return dogrunDetail
@@ -111,28 +121,68 @@ func resolveDogrunDetail(dogrunG googleplace.BaseResource, dogrunD *model.Dogrun
 DBにデータがない場合、google情報のみでレスポンスを作成する
 */
 func resolveDogrunDetailByOnlyGoogle(dogrunG googleplace.BaseResource) dto.DogrunDetailDto {
+	emptyDogrunD := model.Dogrun{}
 	return dto.DogrunDetailDto{
 		PlaceId: dogrunG.ID,
 		Name:    dogrunG.DisplayName.Text,
-		Address: resolveDogrunAddress(dogrunG, nil),
+		Address: resolveDogrunAddress(dogrunG, emptyDogrunD),
 		Location: dto.Location{
 			Latitude:  dogrunG.Location.Latitude,
 			Longitude: dogrunG.Location.Longitude,
 		},
 		BusinessStatus: dogrunG.BusinessStatus,
-		NowOpen:        resolveNowOpening(dogrunG, nil),
-		OpenTime:       resolveBuisnessTime(dogrunG.OpeningHours, nil, true),
-		CloseTime:      resolveBuisnessTime(dogrunG.OpeningHours, nil, false),
+		NowOpen:        resolveNowOpening(dogrunG, emptyDogrunD),
+		OpenTime:       resolveBuisnessTime(dogrunG, emptyDogrunD, true),
+		CloseTime:      resolveBuisnessTime(dogrunG, emptyDogrunD, false),
+		GoogleRating:   dogrunG.Rating,
 	}
+}
+
+/*
+google側にデータがない場合、DB情報のみでレスポンスを作成する
+*/
+func resolveDogrunDetailByOnlyDB(dogrunD model.Dogrun) dto.DogrunDetailDto {
+	var dogrunDetail dto.DogrunDetailDto
+
+	emptyDogrunG := googleplace.BaseResource{}
+
+	// dogrunDetail := dto.DogrunDetailDto{}
+	dogrunDetail = dto.DogrunDetailDto{
+		DogrunID:        int(dogrunD.DogrunID.Int64),
+		DogrunManagerID: int(dogrunD.DogrunManagerID.Int64),
+		PlaceId:         dogrunD.PlaceId.String,
+		Name:            dogrunD.Name.String,
+		Address:         resolveDogrunAddress(emptyDogrunG, dogrunD),
+		Location: dto.Location{
+			Latitude:  dogrunD.Latitude.Float64,
+			Longitude: dogrunD.Longitude.Float64,
+		},
+		NowOpen:     resolveNowOpening(emptyDogrunG, dogrunD),
+		BusinessDay: int(dogrunD.BusinessDay.Int64), // TODO: 一旦、営業日時のテーブル設計再検討
+		Holiday:     int(dogrunD.Holiday.Int64),     // TODO: 一旦、営業日時のテーブル設計再検討
+		OpenTime:    resolveBuisnessTime(emptyDogrunG, dogrunD, true),
+		CloseTime:   resolveBuisnessTime(emptyDogrunG, dogrunD, false),
+		Description: dogrunD.Description.String,
+		DogrunTags:  resolveDogrunTagInfo(dogrunD), // ドッグランタグ情報
+		CreateAt:    &dogrunD.CreateAt.Time,
+		UpdateAt:    &dogrunD.UpdateAt.Time,
+	}
+
+	return dogrunDetail
 }
 
 /*
 DBからドッグランタグ情報を取得
 */
 func resolveDogrunTagInfo(dogrunD model.Dogrun) []dto.DogrunTagDto {
-	dogrunTag := dogrunD.DogrunTags
 
 	var dogrunTagInfos []dto.DogrunTagDto
+
+	if dogrunD.IsDogrunTagEmpty() {
+		return dogrunTagInfos
+	}
+
+	dogrunTag := dogrunD.DogrunTags
 
 	for _, v := range dogrunTag {
 		dogrunTagInfo := dto.DogrunTagDto{
@@ -149,7 +199,7 @@ func resolveDogrunTagInfo(dogrunD model.Dogrun) []dto.DogrunTagDto {
 /*
 住所情報の選定
 */
-func resolveDogrunAddress(dogrunG googleplace.BaseResource, dogrunD *model.Dogrun) dto.Address {
+func resolveDogrunAddress(dogrunG googleplace.BaseResource, dogrunD model.Dogrun) dto.Address {
 
 	var gPostCodeComponent googleplace.AddressComponent
 	for _, v := range dogrunG.AddressComponents {
@@ -161,12 +211,15 @@ func resolveDogrunAddress(dogrunG googleplace.BaseResource, dogrunD *model.Dogru
 	var address string
 	var postCode string
 
-	if dogrunD == nil {
-		address = dogrunG.ShortFormattedAddress
-		postCode = gPostCodeComponent.LongText
-	} else {
+	if dogrunD.IsNotEmpty() && dogrunG.IsNotEmpty() { //両方にある場合
 		address = util.ChooseStringValidValue(dogrunD.Address, dogrunG.ShortFormattedAddress)
 		postCode = util.ChooseStringValidValue(dogrunD.PostCode, gPostCodeComponent.LongText)
+	} else if dogrunD.IsNotEmpty() { //DBにのみある場合
+		address = dogrunD.Address.String
+		postCode = dogrunD.PostCode.String
+	} else if dogrunG.IsNotEmpty() { //google側にのみ
+		address = dogrunG.ShortFormattedAddress
+		postCode = gPostCodeComponent.LongText
 	}
 
 	return dto.Address{PostCode: postCode, Address: address}
@@ -176,9 +229,12 @@ func resolveDogrunAddress(dogrunG googleplace.BaseResource, dogrunD *model.Dogru
 /*
 営業時間から、現在が営業中かを判定
 */
-func resolveNowOpening(dogrunG googleplace.BaseResource, dogrunD *model.Dogrun) bool {
-	if dogrunD == nil {
+func resolveNowOpening(dogrunG googleplace.BaseResource, dogrunD model.Dogrun) bool {
+	if dogrunD.IsEmpty() && dogrunG.IsNotEmpty() { //dがない時
 		return dogrunG.OpeningHours.OpenNow
+	} else if dogrunD.IsNotEmpty() && dogrunG.IsEmpty() { //gがない時
+		//検討中
+		return false
 	}
 
 	openTime := dogrunD.OpenTime.Time
@@ -205,11 +261,13 @@ func resolveNowOpening(dogrunG googleplace.BaseResource, dogrunD *model.Dogrun) 
 /*
 本日の曜日ごとに、今が営業時間を取得
 */
-func resolveBuisnessTime(openingHousr *googleplace.OpeningHours, dogrunD *model.Dogrun, isOpen bool) string {
+func resolveBuisnessTime(dogrunG googleplace.BaseResource, dogrunD model.Dogrun, isOpen bool) string {
 	var timeD sql.NullTime
 
+	openingHours := dogrunG.OpeningHours
+
 	//DB情報の状態によって、対象の時間を取得
-	if dogrunD == nil {
+	if dogrunD.IsEmpty() {
 		timeD.Valid = false
 	} else if isOpen {
 		timeD = dogrunD.OpenTime.NullTime
@@ -222,17 +280,16 @@ func resolveBuisnessTime(openingHousr *googleplace.OpeningHours, dogrunD *model.
 	}
 
 	//regularOpeningHoursが空の場合は不明
-	if openingHousr == nil {
+	if openingHours.IsEmpty() {
 		return "不明"
 	}
 
 	now := time.Now()
 	todayWeekDay := int(now.Weekday())
-	fmt.Println("今日の曜日", todayWeekDay)
 
 	var weekPeriodsInfos *googleplace.OpeningHoursPeriodInfo
 
-	for _, v := range openingHousr.Periods {
+	for _, v := range openingHours.Periods {
 		var periodInfo googleplace.OpeningHoursPeriodInfo
 		if isOpen {
 			periodInfo = v.Open
@@ -259,7 +316,7 @@ func (h *dogrunHandler) GetDogrunByID(id string) {
 /*
 指定範囲内のドッグラン検索
 */
-func (h *dogrunHandler) SearchAroundDogruns(c echo.Context, condition dto.SearchAroudRectangleCondition) ([]googleplace.BaseResource, error) {
+func (h *dogrunHandler) SearchAroundDogruns(c echo.Context, condition dto.SearchAroudRectangleCondition) ([]dto.DogrunDetailDto, error) {
 	logger := log.GetLogger(c).Sugar()
 	logger.Debugw("検索条件", "condition", condition)
 
@@ -269,21 +326,25 @@ func (h *dogrunHandler) SearchAroundDogruns(c echo.Context, condition dto.Search
 	// カスタムバリデーションルールの登録
 	_ = validate.RegisterValidation("latitude", dto.VLatitude)
 	_ = validate.RegisterValidation("longitude", dto.VLongitude)
-	logger.Infow("リクエストボディ", "payload", payload)
 
 	//base情報のFieldを使用
 	var baseFiled googleplace.IFieldMask = googleplace.BaseField{}
 
 	//place情報の取得
-	dogrunG, err := h.searchTextUpToSpecifiedTimes(c, payload, baseFiled)
+	dogrunsG, err := h.searchTextUpToSpecifiedTimes(c, payload, baseFiled)
 	if err != nil {
 		return nil, err
 	}
-	logger.Infow("レスポンス", "response", dogrunG)
+	logger.Infof("googleレスポンスplace数:%d", len(dogrunsG))
 
 	//DBにある指定場所内のドッグランを取得
+	dogrunsD, err := h.drr.GetDogrunByRectanglePointer(c, condition)
+	if err != nil {
+		return nil, err
+	}
+	logger.Infof("DBから取得数:%d", len(dogrunsD))
 
-	return dogrunG, nil
+	return trimAroundDogrunDetailInfo(dogrunsG, dogrunsD), nil
 }
 
 /*
@@ -302,8 +363,8 @@ func (h *dogrunHandler) searchTextUpToSpecifiedTimes(c echo.Context, payload goo
 			return nil, err
 		}
 		// JSONデータを構造体にデコード
-		var searchTextRes googleplace.SearchTextBaseResource
-		err = json.Unmarshal(res, &searchTextRes)
+		searchTextRes := &googleplace.SearchTextBaseResource{}
+		err = json.Unmarshal(res, searchTextRes)
 		if err != nil {
 			logger.Error(err)
 			return nil, err
@@ -320,4 +381,56 @@ func (h *dogrunHandler) searchTextUpToSpecifiedTimes(c echo.Context, payload goo
 	}
 
 	return dogruns, nil
+}
+
+/*
+検索結果をもとに、レスポンス用のDTOを作成
+placeIdで、両方にあるデータと、DBにのみあるデータ等で分ける
+*/
+func trimAroundDogrunDetailInfo(dogrunsG []googleplace.BaseResource, dogrunsD []model.Dogrun) []dto.DogrunDetailDto {
+	//google情報からpalceIdをkeyにmapにまとめる
+	dogrunsGWithPalceID := make(map[string]googleplace.BaseResource, len(dogrunsG))
+	for _, dogrunG := range dogrunsG {
+		dogrunsGWithPalceID[dogrunG.ID] = dogrunG
+	}
+
+	//DB情報からpalceIdがあるデータのみ、mapにまとめる
+	dogrunsDWithPalceID := make(map[string]model.Dogrun)
+	//palceIdがないもののみでまとめる
+	var dogrunDWithoutPlaceIdS []model.Dogrun
+	for _, dogrunD := range dogrunsD {
+		if dogrunD.PlaceId.Valid {
+			dogrunsDWithPalceID[dogrunD.PlaceId.String] = dogrunD
+		} else {
+			dogrunDWithoutPlaceIdS = append(dogrunDWithoutPlaceIdS, dogrunD)
+		}
+	}
+
+	dogrunDetailInfos := []dto.DogrunDetailDto{}
+
+	//両方にplaceIdがある情報をDTOにつめる
+	for placeId, dogrunGValue := range dogrunsGWithPalceID {
+		dogrunDValue, existDogrunD := dogrunsDWithPalceID[placeId]
+		if existDogrunD {
+			//DBにもある場合、両方からデータの選別
+			dogrunDetailInfos = append(dogrunDetailInfos, resolveDogrunDetail(dogrunGValue, dogrunDValue))
+			//DogrunsDから削除
+			delete(dogrunsDWithPalceID, placeId)
+		} else {
+			//google側にしかない場合
+			dogrunDetailInfos = append(dogrunDetailInfos, resolveDogrunDetailByOnlyGoogle(dogrunGValue))
+		}
+	}
+
+	//placeIdはあるが、google側にないものをDTOにつめる
+	for _, dogrunDValue := range dogrunsDWithPalceID {
+		dogrunDetailInfos = append(dogrunDetailInfos, resolveDogrunDetailByOnlyDB(dogrunDValue))
+	}
+
+	//placeIdがないDBのみのデータをDTOにつめる
+	for _, dogrunDValue := range dogrunDWithoutPlaceIdS {
+		dogrunDetailInfos = append(dogrunDetailInfos, resolveDogrunDetailByOnlyDB(dogrunDValue))
+	}
+
+	return dogrunDetailInfos
 }

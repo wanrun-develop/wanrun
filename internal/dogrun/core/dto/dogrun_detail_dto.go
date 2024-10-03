@@ -20,8 +20,8 @@ type DogrunDetailDto struct {
 	GoogleRating    float32        `json:"google_rating,omitempty"`
 	UserRatingCount int            `json:"user_rating_count,omitempty"`
 	DogrunTags      []DogrunTagDto `json:"dogrun_tags,omitempty"`
-	CreateAt        time.Time      `json:"create_at,omitempty"`
-	UpdateAt        time.Time      `json:"update_at,omitempty"`
+	CreateAt        *time.Time     `json:"create_at,omitempty"`
+	UpdateAt        *time.Time     `json:"update_at,omitempty"`
 }
 
 // ドッグランタグ情報
