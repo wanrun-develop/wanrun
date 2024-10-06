@@ -77,7 +77,6 @@ Google情報とDB情報から、ドッグラン詳細情報を作成
 基本的に、DB情報をドッグランマネージャーからの手動更新がある前提で、優先情報とする
 */
 func resolveDogrunDetail(dogrunG googleplace.BaseResource, dogrunD model.Dogrun) dto.DogrunDetailDto {
-	var dogrunDetail dto.DogrunDetailDto
 
 	if dogrunD.IsEmpty() && dogrunG.IsNotEmpty() {
 		return resolveDogrunDetailByOnlyGoogle(dogrunG)
@@ -90,8 +89,7 @@ func resolveDogrunDetail(dogrunG googleplace.BaseResource, dogrunD model.Dogrun)
 		dogrunManager = int(dogrunD.DogrunManagerID.Int64)
 	}
 
-	// dogrunDetail := dto.DogrunDetailDto{}
-	dogrunDetail = dto.DogrunDetailDto{
+	return dto.DogrunDetailDto{
 		DogrunID:        int(dogrunD.DogrunID.Int64),
 		DogrunManagerID: dogrunManager,
 		PlaceId:         dogrunG.ID,
@@ -114,14 +112,13 @@ func resolveDogrunDetail(dogrunG googleplace.BaseResource, dogrunD model.Dogrun)
 		UpdateAt:       &dogrunD.UpdateAt.Time,
 	}
 
-	return dogrunDetail
 }
 
 /*
 DBにデータがない場合、google情報のみでレスポンスを作成する
 */
 func resolveDogrunDetailByOnlyGoogle(dogrunG googleplace.BaseResource) dto.DogrunDetailDto {
-	emptyDogrunD := model.Dogrun{}
+	var emptyDogrunD model.Dogrun
 	return dto.DogrunDetailDto{
 		PlaceId: dogrunG.ID,
 		Name:    dogrunG.DisplayName.Text,
@@ -142,12 +139,10 @@ func resolveDogrunDetailByOnlyGoogle(dogrunG googleplace.BaseResource) dto.Dogru
 google側にデータがない場合、DB情報のみでレスポンスを作成する
 */
 func resolveDogrunDetailByOnlyDB(dogrunD model.Dogrun) dto.DogrunDetailDto {
-	var dogrunDetail dto.DogrunDetailDto
 
-	emptyDogrunG := googleplace.BaseResource{}
+	var emptyDogrunG googleplace.BaseResource
 
-	// dogrunDetail := dto.DogrunDetailDto{}
-	dogrunDetail = dto.DogrunDetailDto{
+	return dto.DogrunDetailDto{
 		DogrunID:        int(dogrunD.DogrunID.Int64),
 		DogrunManagerID: int(dogrunD.DogrunManagerID.Int64),
 		PlaceId:         dogrunD.PlaceId.String,
@@ -167,8 +162,6 @@ func resolveDogrunDetailByOnlyDB(dogrunD model.Dogrun) dto.DogrunDetailDto {
 		CreateAt:    &dogrunD.CreateAt.Time,
 		UpdateAt:    &dogrunD.UpdateAt.Time,
 	}
-
-	return dogrunDetail
 }
 
 /*
@@ -363,7 +356,7 @@ func (h *dogrunHandler) searchTextUpToSpecifiedTimes(c echo.Context, payload goo
 			return nil, err
 		}
 		// JSONデータを構造体にデコード
-		searchTextRes := &googleplace.SearchTextBaseResource{}
+		var searchTextRes *googleplace.SearchTextBaseResource
 		err = json.Unmarshal(res, searchTextRes)
 		if err != nil {
 			logger.Error(err)
@@ -406,7 +399,7 @@ func trimAroundDogrunDetailInfo(dogrunsG []googleplace.BaseResource, dogrunsD []
 		}
 	}
 
-	dogrunDetailInfos := []dto.DogrunDetailDto{}
+	var dogrunDetailInfos []dto.DogrunDetailDto
 
 	//両方にplaceIdがある情報をDTOにつめる
 	for placeId, dogrunGValue := range dogrunsGWithPalceID {
