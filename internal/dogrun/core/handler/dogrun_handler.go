@@ -356,7 +356,7 @@ func (h *dogrunHandler) searchTextUpToSpecifiedTimes(c echo.Context, payload goo
 			return nil, err
 		}
 		// JSONデータを構造体にデコード
-		var searchTextRes *googleplace.SearchTextBaseResource
+		searchTextRes := new(googleplace.SearchTextBaseResource)
 		err = json.Unmarshal(res, searchTextRes)
 		if err != nil {
 			logger.Error(err)
