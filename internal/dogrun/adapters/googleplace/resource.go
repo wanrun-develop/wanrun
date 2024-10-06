@@ -5,6 +5,11 @@ type Location struct {
 	Longitude float64 `json:"longitude"`
 }
 
+type SearchTextBaseResource struct {
+	Places        []BaseResource `json:"places"`
+	NextPageToken *string        `json:"nextPageToken"`
+}
+
 type BaseResource struct {
 	ID                    string             `json:"id"`
 	Location              Location           `json:"location"`
@@ -50,4 +55,32 @@ type OpeningHoursPeriodInfo struct {
 	Day    int `json:"day"`
 	Hour   int `json:"hour"`
 	Minute int `json:"minute"`
+}
+
+/*
+BaseResourceが空かの判定
+*/
+func (r *BaseResource) IsEmpty() bool {
+	return r.ID == ""
+}
+
+/*
+BaseResourceが空でないかの判定
+*/
+func (r *BaseResource) IsNotEmpty() bool {
+	return !r.IsEmpty()
+}
+
+/*
+OpeningHoursが空かの判定
+*/
+func (o *OpeningHours) IsEmpty() bool {
+	return len(o.Periods) == 0 && len(o.WeekdayDescriptions) == 0
+}
+
+/*
+OpeningHoursが空でないかの判定
+*/
+func (o *OpeningHours) IsNotEmpty() bool {
+	return !o.IsEmpty()
 }

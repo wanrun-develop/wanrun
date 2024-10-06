@@ -6,23 +6,53 @@ import (
 )
 
 type Dogrun struct {
-	DogrunID        sql.NullInt64  `gorm:"primaryKey;column:dogrun_id;autoIncrement"`
-	DogrunManagerID sql.NullInt64  `gorm:"column:dogrun_manager_id;foreignKey:DogrunManagerID"`
-	PlaceId         sql.NullString `gorm:"size:256;column:place_id"`
-	Name            sql.NullString `gorm:"size:256;column:name"`
-	Address         sql.NullString `gorm:"size:256;column:address"`
-	PostCode        sql.NullString `gorm:"size:8;column:postcode"`
-	BusinessDay     sql.NullInt64  `gorm:"column:business_day"`
-	Holiday         sql.NullInt64  `gorm:"column:holiday"`
-	OpenTime        CustomTime     `gorm:"column:open_time"`
-	CloseTime       CustomTime     `gorm:"column:close_time"`
-	Description     sql.NullString `gorm:"type:text;column:description"`
-	CreateAt        sql.NullTime   `gorm:"column:reg_at;not null;autoCreateTime"`
-	UpdateAt        sql.NullTime   `gorm:"column:upd_at;not null;autoCreateTime"`
+	DogrunID        sql.NullInt64   `gorm:"primaryKey;column:dogrun_id;autoIncrement"`
+	DogrunManagerID sql.NullInt64   `gorm:"column:dogrun_manager_id;foreignKey:DogrunManagerID"`
+	PlaceId         sql.NullString  `gorm:"size:256;column:place_id"`
+	Name            sql.NullString  `gorm:"size:256;column:name"`
+	Address         sql.NullString  `gorm:"size:256;column:address"`
+	PostCode        sql.NullString  `gorm:"size:8;column:postcode"`
+	Latitude        sql.NullFloat64 `gorm:"column:latitude"`
+	Longitude       sql.NullFloat64 `gorm:"column:longitude"`
+	BusinessDay     sql.NullInt64   `gorm:"column:business_day"`
+	Holiday         sql.NullInt64   `gorm:"column:holiday"`
+	OpenTime        CustomTime      `gorm:"column:open_time"`
+	CloseTime       CustomTime      `gorm:"column:close_time"`
+	Description     sql.NullString  `gorm:"type:text;column:description"`
+	CreateAt        sql.NullTime    `gorm:"column:reg_at;not null;autoCreateTime"`
+	UpdateAt        sql.NullTime    `gorm:"column:upd_at;not null;autoCreateTime"`
 
 	//リレーション
 	// DogrunImages []DogrunImage `gorm:"foreignKey:DogrunID"`
 	DogrunTags []DogrunTag `gorm:"foreignKey:DogrunID;references:DogrunID"`
+}
+
+/*
+dogrunが空かの判定
+*/
+func (d *Dogrun) IsEmpty() bool {
+	return !d.DogrunID.Valid
+}
+
+/*
+dogrunが空でないかの判定
+*/
+func (d *Dogrun) IsNotEmpty() bool {
+	return !d.IsEmpty()
+}
+
+/*
+dogrunタグ情報が空かの判定
+*/
+func (d *Dogrun) IsDogrunTagEmpty() bool {
+	return len(d.DogrunTags) == 0
+}
+
+/*
+dogrunタグ情報が空ではないかの判定
+*/
+func (d *Dogrun) IsDogrunTagNotEmpty() bool {
+	return !d.IsDogrunTagEmpty()
 }
 
 type DogrunTag struct {
