@@ -5,6 +5,10 @@ alter table injection_certifications add constraint dev_injection_certifications
 
 alter table dogruns add constraint dev_dogruns_dogrun_manager_id_fkey foreign key (dogrun_manager_id) references dogrun_managers (dogrun_manager_id);
 
+alter table regular_business_hours add constraint dev_regular_business_hours_dogrun_id_fkey foreign key (dogrun_id) references dogruns (dogrun_id);
+
+alter table special_business_hours add constraint dev_special_business_hours_dogrun_id_fkey foreign key (dogrun_id) references dogruns (dogrun_id);
+
 alter table dogrun_images add constraint dev_dogrun_images_dogrun_id_fkey foreign key (dogrun_id) references dogruns (dogrun_id);
 
 alter table dogrun_tags add constraint dev_dogrun_tags_dogrun_id_fkey foreign key (dogrun_id) references dogruns (dogrun_id);

@@ -59,13 +59,35 @@ CREATE TABLE IF NOT EXISTS dogruns (
     name varchar(256),
     address varchar(256),
     postcode varchar(8),
-    business_day int,
-    holiday int,
-    open_time time,
-    close_time time,
+    latitude decimal(18, 15),
+    longitude decimal(18, 15),
     description text,
     reg_at timestamp not null,
     upd_at timestamp not null
+);
+
+CREATE TABLE IF NOT EXISTS regular_business_hours (
+    regular_business_hours_id serial primary key,
+    dogrun_id bigint not null,
+    day int not null,
+    open_time time,
+    close_time time,
+    is_closed boolean DEFAULT FALSE,
+    is_closed boolean DEFAULT FALSE,
+    created_at timestamp,
+    updated_at timestamp
+);
+
+CREATE TABLE IF NOT EXISTS special_business_hours (
+    special_business_hours_id serial primary key,
+    dogrun_id bigint not null,
+    date DATE not null,  
+    open_time time,  
+    close_time time, 
+    is_closed boolean DEFAULT FALSE,
+    is_closed boolean DEFAULT FALSE,
+    created_at timestamp,
+    updated_at timestamp
 );
 
 CREATE TABLE IF NOT EXISTS dogrun_images (
@@ -115,6 +137,9 @@ alter table dogs add foreign key (dog_type_id) references dog_type_mst (dog_type
 alter table injection_certifications add foreign key (dog_id) references dogs (dog_id);
 
 alter table dogruns add foreign key (dogrun_manager_id) references dogrun_managers (dogrun_manager_id);
+
+alter table regular_business_hours add foreign key (dogrun_id) references dogruns (dogrun_id);
+alter table special_business_hours add foreign key (dogrun_id) references dogruns (dogrun_id);
 
 alter table dogrun_images add foreign key (dogrun_id) references dogruns (dogrun_id);
 

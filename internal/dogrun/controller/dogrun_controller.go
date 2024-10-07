@@ -31,7 +31,6 @@ func (dc *dogrunController) GetDogrunDetail(c echo.Context) error {
 
 	placeId := c.Param("placeId")
 	logger.Info("リクエストplace id :", placeId)
-	log.GetLogger(c).Info("リクエストplace id")
 
 	dogrun, err := dc.h.GetDogrunDetail(c, placeId)
 	if err != nil {

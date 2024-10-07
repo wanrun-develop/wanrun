@@ -20,6 +20,17 @@ func IsPstrEmpty(s *string) bool {
 }
 
 /*
+HH:mm:ssをtime.Timeに変換。エラーの場合は初期値を返す
+*/
+func ParseStrToTime(str string) time.Time {
+	t, err := time.Parse("15:04:05", str)
+	if err != nil {
+		return time.Time{}
+	}
+	return t
+}
+
+/*
 sql.NullStringのバリデーション。
 valid = falseの際は、デフォルト値を返す
 */
