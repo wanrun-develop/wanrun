@@ -224,6 +224,10 @@ func resolveDogrunAddress(dogrunG googleplace.BaseResource, dogrunD model.Dogrun
 */
 func resolveNowOpening(dogrunG googleplace.BaseResource, dogrunD model.Dogrun) bool {
 
+	if dogrunD.IsEmpty() && dogrunG.IsNotEmpty() { //DB情報がない時
+		return dogrunG.OpeningHours.OpenNow
+	}
+
 	now := time.Now()
 
 	//DBより、今日の曜日の通常営業時間情報を取得
@@ -232,10 +236,7 @@ func resolveNowOpening(dogrunG googleplace.BaseResource, dogrunD model.Dogrun) b
 
 	var nowOpen bool
 
-	if regularBusinessHour.OpenTime.Valid || regularBusinessHour.CloseTime.Valid {
-		//DB情報がどちらかが無効ならfalse
-		nowOpen = false
-	} else if todaySpecialBusinesshour.IsValid() {
+	if todaySpecialBusinesshour.IsValid() {
 		//今日の特別営業日データがある場合、
 		if todaySpecialBusinesshour.IsAllDay.Bool { //24時間営業の場合、true
 			nowOpen = true
@@ -247,6 +248,9 @@ func resolveNowOpening(dogrunG googleplace.BaseResource, dogrunD model.Dogrun) b
 			closeTimeStr := todaySpecialBusinesshour.CloseTime.String
 			nowOpen = DetermineIsOpen(now, util.ParseStrToTime(openTimeStr), util.ParseStrToTime(closeTimeStr))
 		}
+	} else if !regularBusinessHour.OpenTime.Valid || !regularBusinessHour.CloseTime.Valid {
+		//DB情報がどちらかが無効ならfalse
+		nowOpen = false
 	} else {
 		//通常営業時間より判定
 		openTimeStr := regularBusinessHour.OpenTime.String
@@ -254,11 +258,7 @@ func resolveNowOpening(dogrunG googleplace.BaseResource, dogrunD model.Dogrun) b
 		nowOpen = DetermineIsOpen(now, util.ParseStrToTime(openTimeStr), util.ParseStrToTime(closeTimeStr))
 	}
 
-	if dogrunD.IsEmpty() && dogrunG.IsNotEmpty() { //DB情報がない時
-		return dogrunG.OpeningHours.OpenNow
-	} else {
-		return nowOpen
-	}
+	return nowOpen
 }
 
 func DetermineIsOpen(now, openTime, closeTime time.Time) bool {

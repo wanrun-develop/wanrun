@@ -4,39 +4,39 @@ import "time"
 
 // ドッグラン詳細画面での表示情報
 type DogrunDetailDto struct {
-	DogrunID        int            `json:"dogrun_id,omitempty"`
-	DogrunManagerID int            `json:"dogrun_manager_id,omitempty"`
-	PlaceId         string         `json:"place_id,omitempty"`
+	DogrunID        int            `json:"dogrunId,omitempty"`
+	DogrunManagerID int            `json:"dogrunManagerId,omitempty"`
+	PlaceId         string         `json:"placeId,omitempty"`
 	Name            string         `json:"name"`
 	Address         Address        `json:"address"`
 	Location        Location       `json:"location"`
-	BusinessStatus  string         `json:"business_status"`
-	NowOpen         bool           `json:"now_open"`
-	BusinessHour    BusinessHour   `json:"business_hour"`
+	BusinessStatus  string         `json:"businessStatus"`
+	NowOpen         bool           `json:"nowOpen"`
+	BusinessHour    BusinessHour   `json:"businessHour"`
 	Description     string         `json:"description,omitempty"`
-	GoogleRating    float32        `json:"google_rating,omitempty"`
-	UserRatingCount int            `json:"user_rating_count,omitempty"`
-	DogrunTags      []DogrunTagDto `json:"dogrun_tags,omitempty"`
-	CreateAt        *time.Time     `json:"create_at,omitempty"`
-	UpdateAt        *time.Time     `json:"update_at,omitempty"`
+	GoogleRating    float32        `json:"googleRating,omitempty"`
+	UserRatingCount int            `json:"userRatingCount,omitempty"`
+	DogrunTags      []DogrunTagDto `json:"dogrunTags,omitempty"`
+	CreateAt        *time.Time     `json:"createAt,omitempty"`
+	UpdateAt        *time.Time     `json:"updateAt,omitempty"`
 }
 
 // ドッグラン一覧での表示情報
 type DogrunListDto struct {
-	DogrunID        int            `json:"dogrun_id,omitempty"`
-	PlaceId         string         `json:"place_id,omitempty"`
+	DogrunID        int            `json:"dogrunId,omitempty"`
+	PlaceId         string         `json:"placeId,omitempty"`
 	Name            string         `json:"name"`
 	Address         Address        `json:"address"`
 	Location        Location       `json:"location"`
-	NowOpen         bool           `json:"now_open"`
-	OpenTime        string         `json:"open_time"`
-	CloseTime       string         `json:"close_time"`
+	NowOpen         bool           `json:"nowOpen"`
+	OpenTime        string         `json:"openTime"`
+	CloseTime       string         `json:"closeTime"`
 	Description     string         `json:"description,omitempty"`
-	GoogleRating    float32        `json:"google_rating,omitempty"`
-	UserRatingCount int            `json:"user_rating_count,omitempty"`
-	DogrunTags      []DogrunTagDto `json:"dogrun_tags,omitempty"`
-	CreateAt        *time.Time     `json:"create_at,omitempty"`
-	UpdateAt        *time.Time     `json:"update_at,omitempty"`
+	GoogleRating    float32        `json:"googleRating,omitempty"`
+	UserRatingCount int            `json:"userRatingCount,omitempty"`
+	DogrunTags      []DogrunTagDto `json:"dogrunTags,omitempty"`
+	CreateAt        *time.Time     `json:"createAt,omitempty"`
+	UpdateAt        *time.Time     `json:"updateAt,omitempty"`
 }
 
 // 営業日情報
@@ -57,10 +57,10 @@ type RegularBusinessHour struct {
 }
 
 type DayBusinessTime struct {
-	OpenTime  string `json:"open_time"`
-	CloseTime string `json:"close_time"`
-	IsAllDay  bool   `json:"is_all_day"`
-	IsHoliday bool   `json:"is_holiday"`
+	OpenTime  string `json:"openTime"`
+	CloseTime string `json:"closeTime"`
+	IsAllDay  bool   `json:"isAllDay"`
+	IsHoliday bool   `json:"isHoliday"`
 }
 
 // 特別営業日情報
@@ -71,9 +71,9 @@ type SpecialBusinessHour struct {
 
 // ドッグランタグ情報
 type DogrunTagDto struct {
-	DogrunTagId int    `json:"dogrun_tag_id"`
-	TagId       int    `json:"tag_id"`
-	TagName     string `json:"tag_idag_name"`
+	DogrunTagId int    `json:"dogrunTagId"`
+	TagId       int    `json:"tagId"`
+	TagName     string `json:"tagIdagName"`
 	Description string `json:"description"`
 }
 
