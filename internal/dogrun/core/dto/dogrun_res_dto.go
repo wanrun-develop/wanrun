@@ -10,7 +10,7 @@ type DogrunDetailDto struct {
 	Name            string         `json:"name"`
 	Address         Address        `json:"address"`
 	Location        Location       `json:"location"`
-	BusinessStatus  string         `json:"businessStatus"`
+	BusinessStatus  string         `json:"businessStatus,omitempty"`
 	NowOpen         bool           `json:"nowOpen"`
 	BusinessHour    BusinessHour   `json:"businessHour"`
 	Description     string         `json:"description,omitempty"`
@@ -23,20 +23,18 @@ type DogrunDetailDto struct {
 
 // ドッグラン一覧での表示情報
 type DogrunListDto struct {
-	DogrunID        int            `json:"dogrunId,omitempty"`
-	PlaceId         string         `json:"placeId,omitempty"`
-	Name            string         `json:"name"`
-	Address         Address        `json:"address"`
-	Location        Location       `json:"location"`
-	NowOpen         bool           `json:"nowOpen"`
-	OpenTime        string         `json:"openTime"`
-	CloseTime       string         `json:"closeTime"`
-	Description     string         `json:"description,omitempty"`
-	GoogleRating    float32        `json:"googleRating,omitempty"`
-	UserRatingCount int            `json:"userRatingCount,omitempty"`
-	DogrunTags      []DogrunTagDto `json:"dogrunTags,omitempty"`
-	CreateAt        *time.Time     `json:"createAt,omitempty"`
-	UpdateAt        *time.Time     `json:"updateAt,omitempty"`
+	DogrunID          int             `json:"dogrunId,omitempty"`
+	PlaceId           string          `json:"placeId,omitempty"`
+	Name              string          `json:"name"`
+	Address           Address         `json:"address"`
+	Location          Location        `json:"location"`
+	BusinessStatus    string          `json:"businessStatus,omitempty"`
+	NowOpen           bool            `json:"nowOpen"`
+	ToadyBusinessHour DayBusinessTime `json:"toadyBusinessHour"`
+	Description       string          `json:"description,omitempty"`
+	GoogleRating      float32         `json:"googleRating,omitempty"`
+	UserRatingCount   int             `json:"userRatingCount,omitempty"`
+	DogrunTags        []DogrunTagDto  `json:"dogrunTags,omitempty"`
 }
 
 // 営業日情報
