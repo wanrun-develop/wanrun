@@ -29,20 +29,23 @@ const (
 	F_REGULAROPENINGHOURS_A = "regularOpeningHours" //営業時間
 	F_CURRENTOPENINGHOURS_A = "currentOpeningHours" //今日を含む７日間の営業日
 	F_WEBSITEURI_A          = "websiteUri"          //webサイトURL
-
+	//Preferred
+	F_EDITORIALSUMMARY_P = "editorialSummary" //場所の概要
 )
 
 // リクエストに使うfieldMaskたち
 var BASE_FILEDS = []string{
 	F_ID_IO,
-	F_SHORTFORMATTEDADDRESS_LO,
 	F_ADDRESSCOMPONENTS_LO,
+	F_SHORTFORMATTEDADDRESS_LO,
 	F_LOCATION_LO,
 	F_DISPLAYNAME_B,
 	F_RATING_B,
+	F_USERRATINGCOUNT_A,
 	F_BUSINESSSTATUS_B,
 	F_REGULAROPENINGHOURS_A,
 	F_WEBSITEURI_A,
+	F_EDITORIALSUMMARY_P,
 }
 
 type IFieldMask interface {
