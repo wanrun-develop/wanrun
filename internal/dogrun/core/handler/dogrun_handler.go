@@ -520,6 +520,7 @@ func resolveDogrunList(dogrunG googleplace.BaseResource, dogrunD model.Dogrun) d
 		Description:       util.ChooseStringValidValue(dogrunD.Description, dogrunG.Summary.Text),
 		GoogleRating:      dogrunG.Rating,
 		UserRatingCount:   dogrunG.UserRatingCount,
+		Photos:            resolvePlacePhotos(dogrunG),
 		DogrunTags:        resolveDogrunTagInfo(dogrunD), // ドッグランタグ情報
 	}
 
@@ -545,6 +546,7 @@ func resolveDogrunListByOnlyGoogle(dogrunG googleplace.BaseResource) dto.DogrunL
 		Description:       dogrunG.Summary.Text,
 		GoogleRating:      dogrunG.Rating,
 		UserRatingCount:   dogrunG.UserRatingCount,
+		Photos:            resolvePlacePhotos(dogrunG),
 	}
 
 }
@@ -607,4 +609,22 @@ func resolveTodayBusinessHour(dogrunG googleplace.BaseResource, dogrunD model.Do
 	}
 
 	return todaybusinessTimeD
+}
+
+/*
+googleの社員情報をレスポンスに整形
+*/
+func resolvePlacePhotos(dogrunG googleplace.BaseResource) []dto.PhotoInfo {
+	var photos []dto.PhotoInfo
+
+	for _, photo := range dogrunG.Photos {
+		photoInfo := dto.PhotoInfo{
+			PhotoKey: photo.Name,
+			HeightPx: photo.HeightPx,
+			WidthPx:  photo.WidthPx,
+		}
+		photos = append(photos, photoInfo)
+	}
+
+	return photos
 }
