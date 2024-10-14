@@ -23,6 +23,7 @@ type BaseResource struct {
 	BusinessStatus        string             `json:"businessStatus"`
 	OpeningHours          OpeningHours       `json:"regularOpeningHours"`
 	Summary               LocalizedText      `json:"editorialSummary"`
+	Photos                []PhotoObject      `json:"photos"`
 }
 
 /*
@@ -56,6 +57,13 @@ func (o *OpeningHours) IsNotEmpty() bool {
 type LocalizedText struct {
 	Text         string `json:"text"`
 	LanguageCode string `json:"languageCode"`
+}
+
+// google写真情報
+type PhotoObject struct {
+	Name     string `json:"name"`
+	WidthPx  uint   `json:"widthPx"`
+	HeightPx uint   `json:"heightPx"`
 }
 
 // 構造型住所

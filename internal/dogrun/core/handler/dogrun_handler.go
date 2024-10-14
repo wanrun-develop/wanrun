@@ -71,6 +71,44 @@ func (h *dogrunHandler) GetDogrunDetail(c echo.Context, placeID string) (*dto.Do
 	return &resDogDetail, nil
 }
 
+func (h *dogrunHandler) GetDogrunByID(id string) {
+	fmt.Println(h.drr.GetDogrunByID(id))
+}
+
+/*
+指定範囲内のドッグラン検索
+*/
+func (h *dogrunHandler) SearchAroundDogruns(c echo.Context, condition dto.SearchAroudRectangleCondition) ([]dto.DogrunListDto, error) {
+	logger := log.GetLogger(c).Sugar()
+	logger.Debugw("検索条件", "condition", condition)
+
+	payload := googleplace.ConvertReqToSearchTextPayload(condition)
+	// バリデータのインスタンス作成
+	validate := validator.New()
+	// カスタムバリデーションルールの登録
+	_ = validate.RegisterValidation("latitude", dto.VLatitude)
+	_ = validate.RegisterValidation("longitude", dto.VLongitude)
+
+	//base情報のFieldを使用
+	var baseFiled googleplace.IFieldMask = googleplace.BaseField{}
+
+	//place情報の取得
+	dogrunsG, err := h.searchTextUpToSpecifiedTimes(c, payload, baseFiled)
+	if err != nil {
+		return nil, err
+	}
+	logger.Infof("googleレスポンスplace数:%d", len(dogrunsG))
+
+	//DBにある指定場所内のドッグランを取得
+	dogrunsD, err := h.drr.GetDogrunByRectanglePointer(c, condition)
+	if err != nil {
+		return nil, err
+	}
+	logger.Infof("DBから取得数:%d", len(dogrunsD))
+
+	return trimAroundDogrunDetailInfo(dogrunsG, dogrunsD), nil
+}
+
 /*
 Google情報とDB情報から、ドッグラン詳細情報を作成
 基本的に、DB情報をドッグランマネージャーからの手動更新がある前提で、優先情報とする
@@ -374,44 +412,6 @@ func attachRegularBusinessTime(businessHours *dto.RegularBusinessHour, businessT
 	}
 }
 
-func (h *dogrunHandler) GetDogrunByID(id string) {
-	fmt.Println(h.drr.GetDogrunByID(id))
-}
-
-/*
-指定範囲内のドッグラン検索
-*/
-func (h *dogrunHandler) SearchAroundDogruns(c echo.Context, condition dto.SearchAroudRectangleCondition) ([]dto.DogrunListDto, error) {
-	logger := log.GetLogger(c).Sugar()
-	logger.Debugw("検索条件", "condition", condition)
-
-	payload := googleplace.ConvertReqToSearchTextPayload(condition)
-	// バリデータのインスタンス作成
-	validate := validator.New()
-	// カスタムバリデーションルールの登録
-	_ = validate.RegisterValidation("latitude", dto.VLatitude)
-	_ = validate.RegisterValidation("longitude", dto.VLongitude)
-
-	//base情報のFieldを使用
-	var baseFiled googleplace.IFieldMask = googleplace.BaseField{}
-
-	//place情報の取得
-	dogrunsG, err := h.searchTextUpToSpecifiedTimes(c, payload, baseFiled)
-	if err != nil {
-		return nil, err
-	}
-	logger.Infof("googleレスポンスplace数:%d", len(dogrunsG))
-
-	//DBにある指定場所内のドッグランを取得
-	dogrunsD, err := h.drr.GetDogrunByRectanglePointer(c, condition)
-	if err != nil {
-		return nil, err
-	}
-	logger.Infof("DBから取得数:%d", len(dogrunsD))
-
-	return trimAroundDogrunDetailInfo(dogrunsG, dogrunsD), nil
-}
-
 /*
 searchTextを指定上限回数まで実行する
 条件：nextPageTokenが含まれている && リクエスト上限回数を超えていないこと
@@ -520,6 +520,7 @@ func resolveDogrunList(dogrunG googleplace.BaseResource, dogrunD model.Dogrun) d
 		Description:       util.ChooseStringValidValue(dogrunD.Description, dogrunG.Summary.Text),
 		GoogleRating:      dogrunG.Rating,
 		UserRatingCount:   dogrunG.UserRatingCount,
+		Photos:            resolvePlacePhotos(dogrunG),
 		DogrunTags:        resolveDogrunTagInfo(dogrunD), // ドッグランタグ情報
 	}
 
@@ -545,6 +546,7 @@ func resolveDogrunListByOnlyGoogle(dogrunG googleplace.BaseResource) dto.DogrunL
 		Description:       dogrunG.Summary.Text,
 		GoogleRating:      dogrunG.Rating,
 		UserRatingCount:   dogrunG.UserRatingCount,
+		Photos:            resolvePlacePhotos(dogrunG),
 	}
 
 }
@@ -607,4 +609,22 @@ func resolveTodayBusinessHour(dogrunG googleplace.BaseResource, dogrunD model.Do
 	}
 
 	return todaybusinessTimeD
+}
+
+/*
+googleの社員情報をレスポンスに整形
+*/
+func resolvePlacePhotos(dogrunG googleplace.BaseResource) []dto.PhotoInfo {
+	var photos []dto.PhotoInfo
+
+	for _, photo := range dogrunG.Photos {
+		photoInfo := dto.PhotoInfo{
+			PhotoKey: photo.Name,
+			HeightPx: photo.HeightPx,
+			WidthPx:  photo.WidthPx,
+		}
+		photos = append(photos, photoInfo)
+	}
+
+	return photos
 }
