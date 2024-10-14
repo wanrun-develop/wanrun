@@ -19,8 +19,10 @@ type BaseResource struct {
 	AddressComponents     []AddressComponent `json:"addressComponents"`
 	DisplayName           LocalizedText      `json:"displayName"`
 	Rating                float32            `json:"rating"`
+	UserRatingCount       int                `json:"userRatingCount"`
 	BusinessStatus        string             `json:"businessStatus"`
 	OpeningHours          OpeningHours       `json:"regularOpeningHours"`
+	Summary               LocalizedText      `json:"editorialSummary"`
 }
 
 /*
