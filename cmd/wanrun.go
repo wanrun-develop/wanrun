@@ -60,9 +60,8 @@ func Main() {
 }
 
 func newRouter(e *echo.Echo, dbConn *gorm.DB) {
+	// dog関連
 	dogController := newDog(dbConn)
-
-	// e.POST("/sign-up")
 	dog := e.Group("dog")
 	dog.GET("/all", dogController.GetAllDogs)
 	dog.GET("/:dogID", dogController.GetDogByID)
@@ -70,16 +69,18 @@ func newRouter(e *echo.Echo, dbConn *gorm.DB) {
 	dog.DELETE("/delete", dogController.DeleteDog)
 	// dog.PUT("/:dogID", dogController.UpdateDog)
 
+	// dogrun関連
 	dogrunConrtoller := newDogrun(dbConn)
 	dogrun := e.Group("dogrun")
 	dogrun.GET("/detail/:placeId", dogrunConrtoller.GetDogrunDetail)
 	dogrun.GET("/:id", dogrunConrtoller.GetDogrun)
 
+	// auth関連
 	authController := newAuth(dbConn)
 	auth := e.Group("auth")
+	// auth.GET("/google/oauth", authController.GoogleOAuth)
 	auth.POST("/signUp", authController.SignUp)
-	auth.POST("/login", authController.LogIn)
-
+	// auth.POST("/login", authController.LogIn)
 }
 
 // dogの初期化
@@ -87,7 +88,6 @@ func newDog(dbConn *gorm.DB) dogController.IDogController {
 	dogRepository := dogRepository.NewDogRepository(dbConn)
 	dogHandler := dogHandler.NewDogHandler(dogRepository)
 	dogController := dogController.NewDogController(dogHandler)
-
 	return dogController
 }
 
@@ -100,6 +100,8 @@ func newDogrun(dbConn *gorm.DB) dogrunC.IDogrunController {
 
 func newAuth(dbConn *gorm.DB) authController.IAuthController {
 	authRepository := authRepository.NewAuthRepository(dbConn)
+	// googleOAuth := google.NewOAuthGoogle()
+	// authHandler := authHandler.NewAuthHandler(authRepository, googleOAuth)
 	authHandler := authHandler.NewAuthHandler(authRepository)
 	authController := authController.NewAuthController(authHandler)
 	return authController
