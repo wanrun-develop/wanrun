@@ -1,24 +1,30 @@
 package handler
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"slices"
 	"time"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"github.com/wanrun-develop/wanrun/internal/dogrun/adapters/googleplace"
 	"github.com/wanrun-develop/wanrun/internal/dogrun/adapters/repository"
 	"github.com/wanrun-develop/wanrun/internal/dogrun/core/dto"
 	model "github.com/wanrun-develop/wanrun/internal/models"
+	"github.com/wanrun-develop/wanrun/pkg/errors"
 	"github.com/wanrun-develop/wanrun/pkg/log"
 	"github.com/wanrun-develop/wanrun/pkg/util"
 )
 
+const (
+	SEARCH_TEXT_MAX_REQUEST_TIMES = 3 //searchTextの最大リクエスト数。pageSizeを20に指定すると、20*3=60個まで取得する
+)
+
 type IDogrunHandler interface {
-	GetDogrunDetail(c echo.Context, palceId string) (*dto.DogrunDetailDto, error)
-	GetDogrunByID(id string)
+	GetDogrunDetail(echo.Context, string) (*dto.DogrunDetailDto, error)
+	GetDogrunByID(string)
+	SearchAroundDogruns(echo.Context, dto.SearchAroudRectangleCondition) ([]dto.DogrunListDto, error)
 }
 
 type dogrunHandler struct {
@@ -50,6 +56,10 @@ func (h *dogrunHandler) GetDogrunDetail(c echo.Context, placeID string) (*dto.Do
 	}
 	logger.Info("Unmarshal成功")
 
+	if dogrunG.ID == "" {
+		return nil, errors.NewWRError(nil, "指定されたPlaceIdのデータが存在しません。", errors.NewDogrunClientErrorEType())
+	}
+
 	//dbから取得
 	dogrunD, err := h.drr.GetDogrunByPlaceID(c, placeID)
 	if err != nil {
@@ -67,37 +77,106 @@ Google情報とDB情報から、ドッグラン詳細情報を作成
 */
 func resolveDogrunDetail(dogrunG googleplace.BaseResource, dogrunD model.Dogrun) dto.DogrunDetailDto {
 
-	// dogrunDetail := dto.DogrunDetailDto{}
-	dogrunDetail := dto.DogrunDetailDto{
+	if dogrunD.IsEmpty() && dogrunG.IsNotEmpty() {
+		return resolveDogrunDetailByOnlyGoogle(dogrunG)
+	} else if dogrunD.IsNotEmpty() && dogrunG.IsEmpty() {
+		return resolveDogrunDetailByOnlyDB(dogrunD)
+	}
+
+	var dogrunManager int
+	if dogrunD.DogrunManagerID.Valid {
+		dogrunManager = int(dogrunD.DogrunManagerID.Int64)
+	}
+
+	return dto.DogrunDetailDto{
 		DogrunID:        int(dogrunD.DogrunID.Int64),
-		DogrunManagerID: int(dogrunD.DogrunManagerID.Int64),
+		DogrunManagerID: dogrunManager,
 		PlaceId:         dogrunG.ID,
 		Name:            util.ChooseStringValidValue(dogrunD.Name, dogrunG.DisplayName.Text),
 		Address:         resolveDogrunAddress(dogrunG, dogrunD),
+		Location: dto.Location{
+			Latitude:  util.ChooseFloat64ValidValue(dogrunD.Latitude, dogrunG.Location.Latitude),
+			Longitude: util.ChooseFloat64ValidValue(dogrunD.Longitude, dogrunG.Location.Longitude),
+		},
+		BusinessStatus: dogrunG.BusinessStatus,
+		NowOpen:        resolveNowOpening(dogrunG, dogrunD),
+		BusinessHour: dto.BusinessHour{
+			Regular: resolveRegularBusinessHour(dogrunG, dogrunD),
+			Special: resolveSpecialBusinessHour(dogrunD),
+		},
+		Description:     util.ChooseStringValidValue(dogrunD.Description, dogrunG.Summary.Text),
+		GoogleRating:    dogrunG.Rating,
+		UserRatingCount: dogrunG.UserRatingCount,
+		DogrunTags:      resolveDogrunTagInfo(dogrunD), // ドッグランタグ情報
+		CreateAt:        &dogrunD.CreateAt.Time,
+		UpdateAt:        &dogrunD.UpdateAt.Time,
+	}
+
+}
+
+/*
+DBにデータがない場合、google情報のみでドッグラン詳細情報を作成する
+*/
+func resolveDogrunDetailByOnlyGoogle(dogrunG googleplace.BaseResource) dto.DogrunDetailDto {
+	var emptyDogrunD model.Dogrun
+	return dto.DogrunDetailDto{
+		PlaceId: dogrunG.ID,
+		Name:    dogrunG.DisplayName.Text,
+		Address: resolveDogrunAddress(dogrunG, emptyDogrunD),
 		Location: dto.Location{
 			Latitude:  dogrunG.Location.Latitude,
 			Longitude: dogrunG.Location.Longitude,
 		},
 		BusinessStatus: dogrunG.BusinessStatus,
-		NowOpen:        resolveBusinessStatus(dogrunD),
-		BusinessDay:    int(dogrunD.BusinessDay.Int64), // TODO: 一旦、営業日時のテーブル設計再検討
-		Holiday:        int(dogrunD.Holiday.Int64),     // TODO: 一旦、営業日時のテーブル設計再検討
-		OpenTime:       resolveBuisnessTime(dogrunG.OpeningHours, dogrunD.OpenTime.NullTime, true),
-		CloseTime:      resolveBuisnessTime(dogrunG.OpeningHours, dogrunD.CloseTime.NullTime, false),
-		Description:    util.ChooseStringValidValue(dogrunD.Description, ""),
-		DogrunTags:     resolveDogrunTagInfo(dogrunD), // ドッグランタグ情報
+		NowOpen:        resolveNowOpening(dogrunG, emptyDogrunD),
+		BusinessHour: dto.BusinessHour{
+			Regular: resolveRegularBusinessHour(dogrunG, emptyDogrunD),
+			Special: resolveSpecialBusinessHour(emptyDogrunD),
+		},
+		Description:     dogrunG.Summary.Text,
+		GoogleRating:    dogrunG.Rating,
+		UserRatingCount: dogrunG.UserRatingCount,
 	}
+}
 
-	return dogrunDetail
+func resolveDogrunDetailByOnlyDB(dogrunD model.Dogrun) dto.DogrunDetailDto {
+
+	var emptyDogrunG googleplace.BaseResource
+
+	return dto.DogrunDetailDto{
+		DogrunID:        int(dogrunD.DogrunID.Int64),
+		DogrunManagerID: int(dogrunD.DogrunManagerID.Int64),
+		PlaceId:         dogrunD.PlaceId.String,
+		Name:            dogrunD.Name.String,
+		Address:         resolveDogrunAddress(emptyDogrunG, dogrunD),
+		Location: dto.Location{
+			Latitude:  dogrunD.Latitude.Float64,
+			Longitude: dogrunD.Longitude.Float64,
+		},
+		NowOpen: resolveNowOpening(emptyDogrunG, dogrunD),
+		BusinessHour: dto.BusinessHour{
+			Regular: resolveRegularBusinessHour(emptyDogrunG, dogrunD),
+			Special: resolveSpecialBusinessHour(dogrunD),
+		},
+		Description: dogrunD.Description.String,
+		DogrunTags:  resolveDogrunTagInfo(dogrunD), // ドッグランタグ情報
+		CreateAt:    &dogrunD.CreateAt.Time,
+		UpdateAt:    &dogrunD.UpdateAt.Time,
+	}
 }
 
 /*
 DBからドッグランタグ情報を取得
 */
 func resolveDogrunTagInfo(dogrunD model.Dogrun) []dto.DogrunTagDto {
-	dogrunTag := dogrunD.DogrunTags
 
 	var dogrunTagInfos []dto.DogrunTagDto
+
+	if dogrunD.IsDogrunTagEmpty() {
+		return dogrunTagInfos
+	}
+
+	dogrunTag := dogrunD.DogrunTags
 
 	for _, v := range dogrunTag {
 		dogrunTagInfo := dto.DogrunTagDto{
@@ -116,8 +195,6 @@ func resolveDogrunTagInfo(dogrunD model.Dogrun) []dto.DogrunTagDto {
 */
 func resolveDogrunAddress(dogrunG googleplace.BaseResource, dogrunD model.Dogrun) dto.Address {
 
-	address := util.ChooseStringValidValue(dogrunD.Address, dogrunG.ShortFormattedAddress)
-
 	var gPostCodeComponent googleplace.AddressComponent
 	for _, v := range dogrunG.AddressComponents {
 		if slices.Contains(v.Types, googleplace.ADDRESSCOMPONENT_TYPES_POSTAL_CODE) {
@@ -125,25 +202,69 @@ func resolveDogrunAddress(dogrunG googleplace.BaseResource, dogrunD model.Dogrun
 			break
 		}
 	}
-	postCode := util.ChooseStringValidValue(dogrunD.PostCode, gPostCodeComponent.LongText)
+	var address string
+	var postCode string
+
+	if dogrunD.IsNotEmpty() && dogrunG.IsNotEmpty() { //両方にある場合
+		address = util.ChooseStringValidValue(dogrunD.Address, dogrunG.ShortFormattedAddress)
+		postCode = util.ChooseStringValidValue(dogrunD.PostCode, gPostCodeComponent.LongText)
+	} else if dogrunD.IsNotEmpty() { //DBにのみある場合
+		address = dogrunD.Address.String
+		postCode = dogrunD.PostCode.String
+	} else if dogrunG.IsNotEmpty() { //google側にのみ
+		address = dogrunG.ShortFormattedAddress
+		postCode = gPostCodeComponent.LongText
+	}
 
 	return dto.Address{PostCode: postCode, Address: address}
 }
 
-//TODO Google側の情報使うか検討中
 /*
 営業時間から、現在が営業中かを判定
 */
-func resolveBusinessStatus(dogrunD model.Dogrun) bool {
-	openTime := dogrunD.OpenTime.Time
-	closeTime := dogrunD.CloseTime.Time
+func resolveNowOpening(dogrunG googleplace.BaseResource, dogrunD model.Dogrun) bool {
+
+	if dogrunD.IsEmpty() && dogrunG.IsNotEmpty() { //DB情報がない時
+		return dogrunG.OpeningHours.OpenNow
+	}
 
 	now := time.Now()
 
-	// 時間部分だけを取り出す
-	openTime = time.Date(now.Year(), now.Month(), now.Day(), openTime.Hour(), openTime.Minute(), openTime.Second(), 0, time.UTC)
-	closeTime = time.Date(now.Year(), now.Month(), now.Day(), closeTime.Hour(), closeTime.Minute(), closeTime.Second(), 0, time.UTC)
+	//DBより、今日の曜日の通常営業時間情報を取得
+	regularBusinessHour := dogrunD.FetchTargetRegularBussinessHour(int(now.Weekday()))
+	todaySpecialBusinesshour := dogrunD.FetchTargetDateSpecialBusinessHour(now)
 
+	var nowOpen bool
+
+	if todaySpecialBusinesshour.IsValid() {
+		//今日の特別営業日データがある場合、
+		if todaySpecialBusinesshour.IsAllDay.Bool { //24時間営業の場合、true
+			nowOpen = true
+		} else if todaySpecialBusinesshour.IsClosed.Bool { //特別定休日の場、false
+			nowOpen = false
+		} else {
+			//その他は開始時間/終了時間より判定
+			openTimeStr := todaySpecialBusinesshour.OpenTime.String
+			closeTimeStr := todaySpecialBusinesshour.CloseTime.String
+			nowOpen = DetermineIsOpen(now, util.ParseStrToTime(openTimeStr), util.ParseStrToTime(closeTimeStr))
+		}
+	} else if !regularBusinessHour.OpenTime.Valid || !regularBusinessHour.CloseTime.Valid {
+		//DB情報がどちらかが無効ならfalse
+		nowOpen = false
+	} else {
+		//通常営業時間より判定
+		openTimeStr := regularBusinessHour.OpenTime.String
+		closeTimeStr := regularBusinessHour.CloseTime.String
+		nowOpen = DetermineIsOpen(now, util.ParseStrToTime(openTimeStr), util.ParseStrToTime(closeTimeStr))
+	}
+
+	return nowOpen
+}
+
+func DetermineIsOpen(now, openTime, closeTime time.Time) bool {
+	// 時間部分だけを取り出しては、他は統一
+	openTime = time.Date(now.Year(), now.Month(), now.Day(), openTime.Hour(), openTime.Minute(), 00, 0, time.UTC)
+	closeTime = time.Date(now.Year(), now.Month(), now.Day(), closeTime.Hour(), closeTime.Minute(), 00, 0, time.UTC)
 	// 終了時間が開始時間よりも前の場合、終了時間を次の日に設定
 	if closeTime.Before(openTime) {
 		closeTime = closeTime.Add(24 * time.Hour)
@@ -155,41 +276,335 @@ func resolveBusinessStatus(dogrunD model.Dogrun) bool {
 	return now.After(openTime) && now.Before(closeTime)
 }
 
-//TODO: 営業日時のテーブル設計再検討
 /*
-本日の曜日ごとに、今が営業時間を取得
+通常営業時間の判定
 */
-func resolveBuisnessTime(openingHousr googleplace.OpeningHours, timeD sql.NullTime, isOpen bool) string {
+func resolveRegularBusinessHour(dogrunG googleplace.BaseResource, dogrunD model.Dogrun) dto.RegularBusinessHour {
+	var businessHoursG dto.RegularBusinessHour
 
-	if timeD.Valid {
-		return timeD.Time.Format("15:04:05")
-	}
-	now := time.Now()
-	todayWeekDay := int(now.Weekday())
-	fmt.Println("今日の曜日", todayWeekDay)
-
-	var weekPeriodsInfos *googleplace.OpeningHoursPeriodInfo
-
-	for _, v := range openingHousr.Periods {
-		var periodInfo googleplace.OpeningHoursPeriodInfo
-		if isOpen {
-			periodInfo = v.Open
-		} else {
-			periodInfo = v.Close
+	//まずgoogle情報をまとめる
+	//google情報は、periodsにない曜日は定休日なので、それを考慮し0~6でfor文まわす
+	for i := 0; i < 7; i++ {
+		openPeriod, closePeriod := dogrunG.OpeningHours.FetchTargetPeriod(i)
+		isHoliday := openPeriod == nil && closePeriod == nil
+		var openTime, closeTime string
+		var isAllDay bool
+		if !isHoliday {
+			openTime = openPeriod.FormatTime()
+			closeTime = closePeriod.FormatTime()
+			isAllDay = openTime == closeTime
 		}
-		if periodInfo.Day == todayWeekDay {
-			weekPeriodsInfos = &periodInfo
-			break
+		businessTime := dto.DayBusinessTime{
+			OpenTime:  openTime,
+			CloseTime: closeTime,
+			IsAllDay:  isAllDay,
+			IsHoliday: isHoliday,
 		}
+		attachRegularBusinessTime(&businessHoursG, businessTime, i)
 	}
-	//入ってない場合は、定休日
-	if weekPeriodsInfos == nil {
-		return "定休日"
+	//google情報が空でなくて、DB情報がなければgoogle情報を返す
+	if dogrunG.OpeningHours.IsNotEmpty() && dogrunD.IsRegularBusinessHoursEmpty() {
+		return businessHoursG
 	}
 
-	return fmt.Sprintf("%02d:%02d:00", weekPeriodsInfos.Hour, weekPeriodsInfos.Minute)
+	//次にDB情報をまとめる
+	var businessHoursD dto.RegularBusinessHour
+	for i := 0; i < 7; i++ {
+		targetBusinessHour := dogrunD.FetchTargetRegularBussinessHour(i)
+		openTime, closeTime := targetBusinessHour.FormatTime()
+		businessTime := dto.DayBusinessTime{
+			OpenTime:  openTime,
+			CloseTime: closeTime,
+			IsAllDay:  targetBusinessHour.IsAllDay.Bool,
+			IsHoliday: targetBusinessHour.IsClosed.Bool,
+		}
+		attachRegularBusinessTime(&businessHoursD, businessTime, i)
+	}
+
+	return businessHoursD
+}
+
+/*
+特別営業時間の整理
+*/
+func resolveSpecialBusinessHour(dogrunD model.Dogrun) []dto.SpecialBusinessHour {
+	if dogrunD.IsSpecialBusinessHoursEmpty() {
+		return []dto.SpecialBusinessHour{}
+	}
+
+	var specialBusinessHours []dto.SpecialBusinessHour
+	for _, v := range dogrunD.SpecialBusinessHours {
+		if v.IsValid() {
+			openTime, closeTime := v.FormatTime()
+			specialBusinessHour := dto.SpecialBusinessHour{
+				Date: v.FormatDate(),
+				DayBusinessTime: dto.DayBusinessTime{
+					OpenTime:  openTime,
+					CloseTime: closeTime,
+					IsAllDay:  v.IsAllDay.Bool,
+					IsHoliday: v.IsClosed.Bool,
+				},
+			}
+			specialBusinessHours = append(specialBusinessHours, specialBusinessHour)
+		}
+	}
+
+	return specialBusinessHours
+}
+
+/*
+曜日(数値)ごとに、営業時間をDTOに代入していく
+*/
+func attachRegularBusinessTime(businessHours *dto.RegularBusinessHour, businessTime dto.DayBusinessTime, day int) {
+	switch day {
+	case 0:
+		businessHours.Sunday = businessTime
+	case 1:
+		businessHours.Monday = businessTime
+	case 2:
+		businessHours.Tuesday = businessTime
+	case 3:
+		businessHours.Wednesday = businessTime
+	case 4:
+		businessHours.Thursday = businessTime
+	case 5:
+		businessHours.Friday = businessTime
+	case 6:
+		businessHours.Saturday = businessTime
+	}
 }
 
 func (h *dogrunHandler) GetDogrunByID(id string) {
 	fmt.Println(h.drr.GetDogrunByID(id))
+}
+
+/*
+指定範囲内のドッグラン検索
+*/
+func (h *dogrunHandler) SearchAroundDogruns(c echo.Context, condition dto.SearchAroudRectangleCondition) ([]dto.DogrunListDto, error) {
+	logger := log.GetLogger(c).Sugar()
+	logger.Debugw("検索条件", "condition", condition)
+
+	payload := googleplace.ConvertReqToSearchTextPayload(condition)
+	// バリデータのインスタンス作成
+	validate := validator.New()
+	// カスタムバリデーションルールの登録
+	_ = validate.RegisterValidation("latitude", dto.VLatitude)
+	_ = validate.RegisterValidation("longitude", dto.VLongitude)
+
+	//base情報のFieldを使用
+	var baseFiled googleplace.IFieldMask = googleplace.BaseField{}
+
+	//place情報の取得
+	dogrunsG, err := h.searchTextUpToSpecifiedTimes(c, payload, baseFiled)
+	if err != nil {
+		return nil, err
+	}
+	logger.Infof("googleレスポンスplace数:%d", len(dogrunsG))
+
+	//DBにある指定場所内のドッグランを取得
+	dogrunsD, err := h.drr.GetDogrunByRectanglePointer(c, condition)
+	if err != nil {
+		return nil, err
+	}
+	logger.Infof("DBから取得数:%d", len(dogrunsD))
+
+	return trimAroundDogrunDetailInfo(dogrunsG, dogrunsD), nil
+}
+
+/*
+searchTextを指定上限回数まで実行する
+条件：nextPageTokenが含まれている && リクエスト上限回数を超えていないこと
+*/
+func (h *dogrunHandler) searchTextUpToSpecifiedTimes(c echo.Context, payload googleplace.SearchTextPayLoad, fields googleplace.IFieldMask) ([]googleplace.BaseResource, error) {
+	logger := log.GetLogger(c).Sugar()
+	var dogruns []googleplace.BaseResource
+
+	var times int
+	for {
+		times++
+		res, err := h.rest.POSTSearchText(c, payload, fields)
+		if err != nil {
+			return nil, err
+		}
+		// JSONデータを構造体にデコード
+		searchTextRes := &googleplace.SearchTextBaseResource{}
+		err = json.Unmarshal(res, searchTextRes)
+		if err != nil {
+			logger.Error(err)
+			return nil, err
+		}
+		logger.Infow(fmt.Sprintf("レスポンス-%d", times), "response", searchTextRes)
+		dogruns = append(dogruns, searchTextRes.Places...)
+
+		//nextPageTokenがない時 or リクエスト上限に達した時
+		if searchTextRes.NextPageToken == nil || times > SEARCH_TEXT_MAX_REQUEST_TIMES {
+			break
+		}
+
+		payload.PageToken = *searchTextRes.NextPageToken
+	}
+
+	return dogruns, nil
+}
+
+/*
+検索結果をもとに、レスポンス用のDTOを作成
+placeIdで、両方にあるデータと、DBにのみあるデータ等で分ける
+*/
+func trimAroundDogrunDetailInfo(dogrunsG []googleplace.BaseResource, dogrunsD []model.Dogrun) []dto.DogrunListDto {
+	//google情報からpalceIdをkeyにmapにまとめる
+	dogrunsGWithPalceID := make(map[string]googleplace.BaseResource, len(dogrunsG))
+	for _, dogrunG := range dogrunsG {
+		dogrunsGWithPalceID[dogrunG.ID] = dogrunG
+	}
+
+	//DB情報からpalceIdがあるデータのみ、mapにまとめる
+	dogrunsDWithPalceID := make(map[string]model.Dogrun)
+	//palceIdがないもののみでまとめる
+	var dogrunDWithoutPlaceIdS []model.Dogrun
+	for _, dogrunD := range dogrunsD {
+		if dogrunD.PlaceId.Valid {
+			dogrunsDWithPalceID[dogrunD.PlaceId.String] = dogrunD
+		} else {
+			dogrunDWithoutPlaceIdS = append(dogrunDWithoutPlaceIdS, dogrunD)
+		}
+	}
+
+	var dogrunDetailInfos []dto.DogrunListDto
+
+	//両方にplaceIdがある情報をDTOにつめる
+	for placeId, dogrunGValue := range dogrunsGWithPalceID {
+		dogrunDValue, existDogrunD := dogrunsDWithPalceID[placeId]
+		if existDogrunD {
+			//DBにもある場合、両方からデータの選別
+			dogrunDetailInfos = append(dogrunDetailInfos, resolveDogrunList(dogrunGValue, dogrunDValue))
+			//DogrunsDから削除
+			delete(dogrunsDWithPalceID, placeId)
+		} else {
+			//google側にしかない場合
+			dogrunDetailInfos = append(dogrunDetailInfos, resolveDogrunListByOnlyGoogle(dogrunGValue))
+		}
+	}
+
+	//placeIdはあるが、google側にないものをDTOにつめる
+	for _, dogrunDValue := range dogrunsDWithPalceID {
+		dogrunDetailInfos = append(dogrunDetailInfos, resolveDogrunListByOnlyDB(dogrunDValue))
+	}
+
+	//placeIdがないDBのみのデータをDTOにつめる
+	for _, dogrunDValue := range dogrunDWithoutPlaceIdS {
+		dogrunDetailInfos = append(dogrunDetailInfos, resolveDogrunListByOnlyDB(dogrunDValue))
+	}
+
+	return dogrunDetailInfos
+}
+
+/*
+Google情報とDB情報から、ドッグラン一覧情報を作成
+基本的に、DB情報をドッグランマネージャーからの手動更新がある前提で、優先情報とする
+*/
+func resolveDogrunList(dogrunG googleplace.BaseResource, dogrunD model.Dogrun) dto.DogrunListDto {
+	return dto.DogrunListDto{
+		DogrunID: int(dogrunD.DogrunID.Int64),
+		PlaceId:  dogrunG.ID,
+		Name:     util.ChooseStringValidValue(dogrunD.Name, dogrunG.DisplayName.Text),
+		Address:  resolveDogrunAddress(dogrunG, dogrunD),
+		Location: dto.Location{
+			Latitude:  util.ChooseFloat64ValidValue(dogrunD.Latitude, dogrunG.Location.Latitude),
+			Longitude: util.ChooseFloat64ValidValue(dogrunD.Longitude, dogrunG.Location.Longitude),
+		},
+		BusinessStatus:    dogrunG.BusinessStatus,
+		NowOpen:           resolveNowOpening(dogrunG, dogrunD),
+		ToadyBusinessHour: resolveTodayBusinessHour(dogrunG, dogrunD),
+		Description:       util.ChooseStringValidValue(dogrunD.Description, dogrunG.Summary.Text),
+		GoogleRating:      dogrunG.Rating,
+		UserRatingCount:   dogrunG.UserRatingCount,
+		DogrunTags:        resolveDogrunTagInfo(dogrunD), // ドッグランタグ情報
+	}
+
+}
+
+/*
+DBにデータがない場合、google情報のみでドッグラン一覧情報を作成する
+*/
+func resolveDogrunListByOnlyGoogle(dogrunG googleplace.BaseResource) dto.DogrunListDto {
+	var emptyDogrunD model.Dogrun
+
+	return dto.DogrunListDto{
+		PlaceId: dogrunG.ID,
+		Name:    dogrunG.DisplayName.Text,
+		Address: resolveDogrunAddress(dogrunG, emptyDogrunD),
+		Location: dto.Location{
+			Latitude:  dogrunG.Location.Latitude,
+			Longitude: dogrunG.Location.Longitude,
+		},
+		BusinessStatus:    dogrunG.BusinessStatus,
+		NowOpen:           resolveNowOpening(dogrunG, emptyDogrunD),
+		ToadyBusinessHour: resolveTodayBusinessHour(dogrunG, emptyDogrunD),
+		Description:       dogrunG.Summary.Text,
+		GoogleRating:      dogrunG.Rating,
+		UserRatingCount:   dogrunG.UserRatingCount,
+	}
+
+}
+
+/*
+google側にデータがない場合、DB情報のみでドッグラン一覧情報を作成する
+*/
+func resolveDogrunListByOnlyDB(dogrunD model.Dogrun) dto.DogrunListDto {
+	var emptyDogrunG googleplace.BaseResource
+	return dto.DogrunListDto{
+		DogrunID: int(dogrunD.DogrunID.Int64),
+		Name:     dogrunD.Name.String,
+		Address:  resolveDogrunAddress(emptyDogrunG, dogrunD),
+		Location: dto.Location{
+			Latitude:  dogrunD.Latitude.Float64,
+			Longitude: dogrunD.Longitude.Float64,
+		},
+		NowOpen:           resolveNowOpening(emptyDogrunG, dogrunD),
+		ToadyBusinessHour: resolveTodayBusinessHour(emptyDogrunG, dogrunD),
+		Description:       dogrunD.Description.String,
+		DogrunTags:        resolveDogrunTagInfo(dogrunD), // ドッグランタグ情報
+	}
+
+}
+
+/*
+今日の営業時間のみの情報を判定
+*/
+func resolveTodayBusinessHour(dogrunG googleplace.BaseResource, dogrunD model.Dogrun) dto.DayBusinessTime {
+	//今日の曜日取得
+	todayWeekaday := time.Now().Weekday()
+
+	openPeriod, closePeriod := dogrunG.OpeningHours.FetchTargetPeriod(int(todayWeekaday))
+	isHoliday := openPeriod == nil && closePeriod == nil
+	var openTimeG, closeTimeG string
+	var isAllDay bool
+	if !isHoliday {
+		openTimeG = openPeriod.FormatTime()
+		closeTimeG = closePeriod.FormatTime()
+		isAllDay = openTimeG == closeTimeG
+	}
+	todaybusinessTimeG := dto.DayBusinessTime{
+		OpenTime:  openTimeG,
+		CloseTime: closeTimeG,
+		IsAllDay:  isAllDay,
+		IsHoliday: isHoliday,
+	}
+	//google情報が空でなくて、DB情報がなければgoogle情報を返す
+	if dogrunG.OpeningHours.IsNotEmpty() && dogrunD.IsRegularBusinessHoursEmpty() {
+		return todaybusinessTimeG
+	}
+
+	targetBusinessHour := dogrunD.FetchTargetRegularBussinessHour(int(todayWeekaday))
+	openTime, closeTime := targetBusinessHour.FormatTime()
+	todaybusinessTimeD := dto.DayBusinessTime{
+		OpenTime:  openTime,
+		CloseTime: closeTime,
+		IsAllDay:  targetBusinessHour.IsAllDay.Bool,
+		IsHoliday: targetBusinessHour.IsClosed.Bool,
+	}
+
+	return todaybusinessTimeD
 }

@@ -1,25 +1,33 @@
 package googleplace
 
 import (
-	"errors"
+	"bytes"
+	"encoding/json"
 	"io"
 	"net/http"
 	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/wanrun-develop/wanrun/configs"
+	"github.com/wanrun-develop/wanrun/pkg/errors"
 	"github.com/wanrun-develop/wanrun/pkg/log"
 	"go.uber.org/zap"
 )
 
 var apiKey string
 
+const (
+	H_G_FIELD_MASK string = "X-Goog-FieldMask"
+)
+
 func init() {
 	apiKey = configs.FetchCondigStr("google.place.api.key")
 }
 
 type IRest interface {
-	GETPlaceInfo(c echo.Context, placeId string, field IFieldMask) ([]byte, error)
+	GETPlaceInfo(echo.Context, string, IFieldMask) ([]byte, error)
+	POSTSearchNearby(echo.Context, SearchNearbyPayLoad, IFieldMask) ([]byte, error)
+	POSTSearchText(echo.Context, SearchTextPayLoad, IFieldMask) ([]byte, error)
 }
 type rest struct{}
 
@@ -29,19 +37,81 @@ func NewRest() IRest {
 
 /*
 GET
-google place apiの実行
+google place details apiの実行
 */
 func (r *rest) GETPlaceInfo(c echo.Context, placeId string, field IFieldMask) ([]byte, error) {
 	logger := log.GetLogger(c).Sugar()
 
-	url := urlApiPlaceWPlaceId(placeId)
+	url := urlPlacesWPlaceId(placeId)
 
 	req, err := fetchGETReq(c, url)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("X-Goog-FieldMask", field.getValue())
+	req.Header.Set(H_G_FIELD_MASK, field.getValue())
 	logger.Info("field mask:", field.getValue())
+
+	resp, err := exec(c, req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	// レスポンスの処理
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	return body, nil
+}
+
+/*
+POST
+google place search nearby apiの実行
+*/
+func (r *rest) POSTSearchNearby(c echo.Context, payload SearchNearbyPayLoad, field IFieldMask) ([]byte, error) {
+	logger := log.GetLogger(c).Sugar()
+
+	url := urlPlacesWSearchNearBy()
+
+	req, err := fetchPOSTReq(c, url, payload)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set(H_G_FIELD_MASK, field.getValueWPlaces())
+	logger.Info("field mask:", field.getValueWPlaces())
+
+	resp, err := exec(c, req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	// レスポンスの処理
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	return body, nil
+}
+
+/*
+POST
+google place search text apiの実行
+*/
+func (r *rest) POSTSearchText(c echo.Context, payload SearchTextPayLoad, field IFieldMask) ([]byte, error) {
+	logger := log.GetLogger(c).Sugar()
+
+	url := urlPlacesWSearchText()
+
+	req, err := fetchPOSTReq(c, url, payload)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set(H_G_FIELD_MASK, field.getValueWPlacesAndNextPageToken())
+	logger.Info("field mask:", field.getValueWPlacesAndNextPageToken())
 
 	resp, err := exec(c, req)
 	if err != nil {
@@ -64,13 +134,39 @@ func fetchGETReq(c echo.Context, url string) (*http.Request, error) {
 	logger := log.GetLogger(c)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
+		err = errors.NewWRError(err, "リクエストの生成に失敗しました", errors.NewDogrunServerErrorEType())
 		logger.Sugar().Error(err)
-		// TODO logger
 		return nil, err
 	}
 	attachBaseHeader(req)
-	logger.Info("http requestの生成:",
+	logger.Debug("http GET requestの生成:",
 		zap.String("method", req.Method), zap.String("url", req.URL.String()), zap.Any("header", req.Header))
+	return req, nil
+}
+
+/*
+標準のPOST用http.Requestの生成
+*/
+func fetchPOSTReq(c echo.Context, url string, payload any) (*http.Request, error) {
+	logger := log.GetLogger(c)
+
+	// payloadをJSONに変換
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		err = errors.NewWRError(err, "payloadのJSON変換に失敗しました", errors.NewDogrunServerErrorEType())
+		logger.Sugar().Error(err)
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(jsonData)))
+	if err != nil {
+		err = errors.NewWRError(err, "リクエストの生成に失敗しました", errors.NewDogrunServerErrorEType())
+		logger.Sugar().Error(err)
+		return nil, err
+	}
+	attachBaseHeader(req)
+	logger.Debug("http POST requestの生成:",
+		zap.String("method", req.Method), zap.String("url", req.URL.String()), zap.Any("header", req.Header), zap.Any("payload", req.Body))
 	return req, nil
 }
 
@@ -97,7 +193,7 @@ func exec(c echo.Context, req *http.Request) (*http.Response, error) {
 
 	if err != nil {
 		logger.Sugar().Error(err)
-		return nil, err
+		return nil, errors.NewWRError(err, "リクエスト失敗", errors.NewDogrunServerErrorEType())
 	}
 
 	// レスポンスのステータスコードに応じてエラーハンドリング
@@ -107,6 +203,8 @@ func exec(c echo.Context, req *http.Request) (*http.Response, error) {
 
 		//ハンドリング
 		switch resp.StatusCode {
+		case http.StatusBadRequest:
+			logger.Error("google place api RESPONSE is Bad Request", zap.Int("api_response_status_code", resp.StatusCode), zap.String("api_response_body", bodyString))
 		case http.StatusForbidden:
 			logger.Error("google place api RESPONSE is Request forbidden", zap.Int("api_response_status_code", resp.StatusCode), zap.String("api_response_body", bodyString))
 		case http.StatusNotFound:
@@ -114,9 +212,9 @@ func exec(c echo.Context, req *http.Request) (*http.Response, error) {
 		case http.StatusInternalServerError:
 			logger.Error("google place api RESPONSE is Server error", zap.Int("api_response_status_code", resp.StatusCode), zap.String("rapi_esponse_body", bodyString))
 		default:
-			logger.Error("google place api RESPONSE is Unexpected error", zap.Int("api_response_tatus_code", resp.StatusCode), zap.String("api_response_body", bodyString))
+			logger.Error("google place api RESPONSE is Unexpected error", zap.Int("api_response_status_code", resp.StatusCode), zap.String("api_response_body", bodyString))
 		}
-		return nil, errors.New("failed to exec google palce api")
+		return nil, errors.NewWRError(nil, "Google API リクエスト失敗", errors.NewDogrunServerErrorEType())
 	} else {
 		// ステータスコードが200 OKの場合
 		logger.Info("google place api Request is successful")

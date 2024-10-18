@@ -34,9 +34,18 @@ func (e wrError) Format(f fmt.State, c rune) {
 すでにWRErrorの場合は、そのまま返す
 */
 func NewWRError(err error, msg string, errorType eType) *wrError {
-	if me, ok := err.(*wrError); ok {
-		return me
+	// errがnilの場合は根本エラーは指定しない
+	if err == nil {
+		return &wrError{
+			eType: errorType,
+			msg:   msg,
+		}
 	}
+	//wrError型にアサーションできるかチェック
+	if me, ok := err.(*wrError); ok {
+		return me // 既存のwrErrorを返す
+	}
+
 	return &wrError{
 		eType:      errorType,
 		causeBy:    err.Error(),
