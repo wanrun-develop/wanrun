@@ -29,7 +29,7 @@ func NewAuthClientErrorEType() eType {
 /*
 認証機能のサーバーエラー
 */
-func NewAuthSeverErrorEType() eType {
+func NewAuthServerErrorEType() eType {
 	return eType{AUTH, SERVER}
 }
 

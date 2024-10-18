@@ -73,7 +73,11 @@ func bindEnvs() {
 	_ = v.BindEnv("postgres.password", "POSTGRES_PASSWORD")
 	_ = v.BindEnv("postgres.dbname", "POSTGRES_DB")
 	_ = v.BindEnv("google.place.api.key", "GOOGLE_PLACE_API_KEY")
-	_ = v.BindEnv("os.secret.key", "SECRET_KEY") // JWT生成用の秘密鍵
+	_ = v.BindEnv("jwt.os.secret.key", "SECRET_KEY")        // jwt生成用の秘密鍵
+	_ = v.BindEnv("jwt.exp.time", "JWT_EXP_TIME")           // jwt生成用の秘密鍵
+	_ = v.BindEnv("gcp.client.id", "GCP_CLIENT_ID")         // oauthの際のgcp credentials
+	_ = v.BindEnv("gcp.client.secret", "GCP_CLIENT_SECRET") // oauthの際のgcp credentials
+	_ = v.BindEnv("gcp.redirect.uri", "GCP_REDIRECT_URI")   // oauthの際のgcp credentials
 }
 
 /*
@@ -130,4 +134,18 @@ loadしたviperからkeyで値を取得
 */
 func FetchCondigStr(key string) string {
 	return v.GetString(key)
+}
+
+/*
+loadしたviperからkeyで値を取得(int)
+*/
+func FetchCondigInt(key string) int {
+	return v.GetInt(key)
+}
+
+/*
+loadしたviperからkeyで値を取得(bool)
+*/
+func FetchCondigbool(key string) bool {
+	return v.GetBool(key)
 }

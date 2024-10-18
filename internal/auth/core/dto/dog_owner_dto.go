@@ -1,5 +1,5 @@
 package dto
 
 type ResDogOwnerDto struct {
-	DogOwnerID uint `json:"dogOwnerId"`
+	DogOwnerID uint64 `json:"dogOwnerId"`
 }
