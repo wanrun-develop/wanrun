@@ -1,10 +1,10 @@
 CREATE TABLE IF NOT EXISTS dog_owner_credentials (
     credential_id serial primary key,             -- PK
     auth_dog_owner_id bigint not null,            -- auth_dog_ownersへの外部キー
-    provider_name varchar(50),           -- OAuthプロバイダ名（例: 'google', 'facebook' など）
+    provider_name varchar(50),                    -- OAuthプロバイダ名（例: 'google', 'facebook' など）
     email varchar(255) unique,                    -- emailはユニークでNULLを許可
     phone_number varchar(15) unique,              -- phone_numberはユニークでNULLを許可
-    provider_user_id varchar(256),       -- OAuthプロバイダから提供されるユーザーID
+    provider_user_id varchar(256),                -- OAuthプロバイダから提供されるユーザーID
     password varchar(256),                        -- パスワード認証用のパスワード。OAuth認証の場合はNULL。
     login_at timestamp,                           -- 最後のログイン時間
     UNIQUE (provider_name, provider_user_id),     -- プロバイダ名とプロバイダユーザーIDの組み合わせは一意
