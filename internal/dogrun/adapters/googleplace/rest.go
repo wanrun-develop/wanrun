@@ -28,6 +28,7 @@ type IRest interface {
 	GETPlaceInfo(echo.Context, string, IFieldMask) ([]byte, error)
 	POSTSearchNearby(echo.Context, SearchNearbyPayLoad, IFieldMask) ([]byte, error)
 	POSTSearchText(echo.Context, SearchTextPayLoad, IFieldMask) ([]byte, error)
+	GETPhotoByName(echo.Context, string, string, string) ([]byte, error)
 }
 type rest struct{}
 
@@ -50,6 +51,42 @@ func (r *rest) GETPlaceInfo(c echo.Context, placeId string, field IFieldMask) ([
 	}
 	req.Header.Set(H_G_FIELD_MASK, field.getValue())
 	logger.Info("field mask:", field.getValue())
+
+	resp, err := exec(c, req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	// レスポンスの処理
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	return body, nil
+}
+
+/*
+GET
+google place photo media apiの実行
+*/
+func (r *rest) GETPhotoByName(c echo.Context, name, widthPx, heightPx string) ([]byte, error) {
+	logger := log.GetLogger(c).Sugar()
+
+	url := urlPlacesPhotoWName(name)
+
+	req, err := fetchGETReq(c, url)
+	if err != nil {
+		return nil, err
+	}
+
+	q := req.URL.Query()
+	q.Add("maxWidthPx", widthPx)
+	q.Add("maxHeightPx", heightPx)
+	q.Add("skipHttpRedirect", "true")
+	req.URL.RawQuery = q.Encode()
+
+	logger.Info("request url : ", req.URL.String())
 
 	resp, err := exec(c, req)
 	if err != nil {

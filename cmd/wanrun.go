@@ -75,6 +75,7 @@ func newRouter(e *echo.Echo, dbConn *gorm.DB) {
 	dogrun.GET("/detail/:placeId", dogrunConrtoller.GetDogrunDetail)
 	dogrun.GET("/:id", dogrunConrtoller.GetDogrun)
 	dogrun.POST("/search", dogrunConrtoller.SearchAroundDogruns)
+	dogrun.GET("/photo/src", dogrunConrtoller.GetDogrunPhoto)
 
 	authController := newAuth(dbConn)
 	auth := e.Group("auth")

@@ -25,6 +25,7 @@ type IDogrunHandler interface {
 	GetDogrunDetail(echo.Context, string) (*dto.DogrunDetailDto, error)
 	GetDogrunByID(string)
 	SearchAroundDogruns(echo.Context, dto.SearchAroudRectangleCondition) ([]dto.DogrunListDto, error)
+	GetDogrunPhotoSrc(echo.Context, string, string, string) (string, error)
 }
 
 type dogrunHandler struct {
@@ -51,10 +52,10 @@ func (h *dogrunHandler) GetDogrunDetail(c echo.Context, placeID string) (*dto.Do
 	var dogrunG googleplace.BaseResource
 	err = json.Unmarshal(resG, &dogrunG)
 	if err != nil {
+		err = errors.NewWRError(nil, "google apiレスポンスの変換に失敗しました。", errors.NewDogrunServerErrorEType())
 		logger.Error(err)
 		return nil, err
 	}
-	logger.Info("Unmarshal成功")
 
 	if dogrunG.ID == "" {
 		return nil, errors.NewWRError(nil, "指定されたPlaceIdのデータが存在しません。", errors.NewDogrunClientErrorEType())
@@ -107,6 +108,29 @@ func (h *dogrunHandler) SearchAroundDogruns(c echo.Context, condition dto.Search
 	logger.Infof("DBから取得数:%d", len(dogrunsD))
 
 	return trimAroundDogrunDetailInfo(dogrunsG, dogrunsD), nil
+}
+
+/*
+ドッグランのgoogle画像をnameからsource用のURLを取得する
+*/
+func (h *dogrunHandler) GetDogrunPhotoSrc(c echo.Context, name, widthPx, heightPx string) (string, error) {
+	logger := log.GetLogger(c).Sugar()
+
+	res, err := h.rest.GETPhotoByName(c, name, widthPx, heightPx)
+
+	if err != nil {
+		return "", err
+	}
+
+	var photo googleplace.PhotoMediaResource
+	err = json.Unmarshal(res, &photo)
+	if err != nil {
+		err = errors.NewWRError(nil, "google apiレスポンスの変換に失敗しました。", errors.NewDogrunServerErrorEType())
+		logger.Error(err)
+		return "", err
+	}
+
+	return photo.PhotoUri, nil
 }
 
 /*
@@ -431,6 +455,7 @@ func (h *dogrunHandler) searchTextUpToSpecifiedTimes(c echo.Context, payload goo
 		searchTextRes := &googleplace.SearchTextBaseResource{}
 		err = json.Unmarshal(res, searchTextRes)
 		if err != nil {
+			err = errors.NewWRError(nil, "google apiレスポンスの変換に失敗しました。", errors.NewDogrunServerErrorEType())
 			logger.Error(err)
 			return nil, err
 		}
