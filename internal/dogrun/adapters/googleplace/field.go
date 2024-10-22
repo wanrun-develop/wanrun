@@ -24,6 +24,7 @@ const (
 	F_DISPLAYNAME_B    = "displayName"    // 表示名
 	F_RATING_B         = "rating"         //評価
 	F_BUSINESSSTATUS_B = "businessStatus" //評価(0~5)
+	F_PHOTOS_B         = "photos"         //画像
 	//Advanced
 	F_USERRATINGCOUNT_A     = "userRatingCount"     //評価数
 	F_REGULAROPENINGHOURS_A = "regularOpeningHours" //営業時間
@@ -46,6 +47,7 @@ var BASE_FILEDS = []string{
 	F_REGULAROPENINGHOURS_A,
 	F_WEBSITEURI_A,
 	F_EDITORIALSUMMARY_P,
+	F_PHOTOS_B,
 }
 
 type IFieldMask interface {
