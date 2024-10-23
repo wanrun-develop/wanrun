@@ -13,7 +13,7 @@ ENV PATH=$PATH:/go/bin/linux_amd64
 WORKDIR ${ROOTPATH}
 
 RUN go install github.com/go-delve/delve/cmd/dlv@latest
-RUN go install github.com/air-verse/air@latest
+RUN go install github.com/air-verse/air@v1.52.3
 COPY go.mod go.sum .air.toml ./
 RUN go mod download
 ENV PATH=$PATH:/usr/local/go/bin:$GOPATH/bin

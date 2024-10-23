@@ -2,6 +2,7 @@ package controller
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
@@ -15,6 +16,7 @@ type IDogrunController interface {
 	GetDogrunDetail(echo.Context) error
 	GetDogrun(echo.Context) error
 	SearchAroundDogruns(echo.Context) error
+	GetDogrunPhoto(echo.Context) error
 }
 
 type dogrunController struct {
@@ -46,6 +48,7 @@ func (dc *dogrunController) GetDogrun(c echo.Context) error {
 	return nil
 }
 
+// ドッグランの周辺検索
 func (dc *dogrunController) SearchAroundDogruns(c echo.Context) error {
 	logger := log.GetLogger(c).Sugar()
 	//リクエストボディをバインド
@@ -73,4 +76,53 @@ func (dc *dogrunController) SearchAroundDogruns(c echo.Context) error {
 		return err
 	}
 	return c.JSON(http.StatusOK, dogruns)
+}
+
+// ドッグランの画像nameよりsrcUrlの取得
+func (dc *dogrunController) GetDogrunPhoto(c echo.Context) error {
+	logger := log.GetLogger(c).Sugar()
+
+	name := c.QueryParam("name")
+	widthPx := c.QueryParam("widthPx")
+	err := validateMaxPX(widthPx)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	heightPx := c.QueryParam("heightPx")
+	err = validateMaxPX(heightPx)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	logger.Info("photo name :", name)
+	logger.Info("photo widthPx :", widthPx)
+	logger.Info("photo heightPx :", heightPx)
+
+	srcUri, err := dc.h.GetDogrunPhotoSrc(c, name, widthPx, heightPx)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{
+		"src": srcUri,
+	})
+}
+
+/*
+リクエストのクエリパラメータのpxのバリデーション
+*/
+func validateMaxPX(px string) error {
+	// stringをintに変換
+	convertedPX, err := strconv.Atoi(px)
+	if err != nil {
+		return errors.NewWRError(nil, "リクエストの画像サイズの指定が不正です。", errors.NewDogrunClientErrorEType())
+	}
+
+	// 1から4800の範囲であるかをチェック
+	if convertedPX < 1 || convertedPX > 4800 {
+		return errors.NewWRError(nil, "リクエストの画像サイズの指定が不正です。1以上4800以下である必要があります。", errors.NewDogrunClientErrorEType())
+	}
+	return nil
 }

@@ -35,6 +35,7 @@ type DogrunListDto struct {
 	GoogleRating      float32         `json:"googleRating,omitempty"`
 	UserRatingCount   int             `json:"userRatingCount,omitempty"`
 	DogrunTags        []DogrunTagDto  `json:"dogrunTags,omitempty"`
+	Photos            []PhotoInfo     `json:"photos,omitempty"`
 }
 
 // 営業日情報
@@ -65,6 +66,12 @@ type DayBusinessTime struct {
 type SpecialBusinessHour struct {
 	Date string `json:"date"`
 	DayBusinessTime
+}
+
+type PhotoInfo struct {
+	PhotoKey string `json:"photoKey"`
+	WidthPx  uint   `json:"widthPx"`
+	HeightPx uint   `json:"heightPx"`
 }
 
 // ドッグランタグ情報
