@@ -128,3 +128,9 @@ func (o *OpeningHoursPeriodInfo) FormatTime() string {
 	// "HH:mm" 形式で返す
 	return fmt.Sprintf("%s:%s:00", hh, mm)
 }
+
+// google places photo mediaのレスポンス
+type PhotoMediaResource struct {
+	Name     string `json:"name"`
+	PhotoUri string `json:"photoUri"`
+}

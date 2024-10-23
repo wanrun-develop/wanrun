@@ -1,23 +1,30 @@
 package googleplace
 
 const (
-	MAP_BASE    string = "https://maps.googleapis.com/maps/api/place"
-	PLACES_BASE string = "https://places.googleapis.com/v1/places"
+	// MAP_BASE    string = "https://maps.googleapis.com/maps/api/place"
+	PLACES_BASE        string = "https://places.googleapis.com/v1"
+	PLACES_BASE_PLACES string = PLACES_BASE + "/" + PLACES
 )
 
 const (
-	SEARCH_NEARBY = "searchNearby"
-	SEARCH_TEXT   = "searchText"
+	PLACES        string = "places"
+	SEARCH_NEARBY string = "searchNearby"
+	SEARCH_TEXT   string = "searchText"
+	MEDIA         string = "media"
 )
 
 func urlPlacesWPlaceId(placeeId string) string {
-	return PLACES_BASE + "/" + placeeId
+	return PLACES_BASE_PLACES + "/" + placeeId
 }
 
 func urlPlacesWSearchNearBy() string {
-	return PLACES_BASE + ":" + SEARCH_NEARBY
+	return PLACES_BASE_PLACES + ":" + SEARCH_NEARBY
 }
 
 func urlPlacesWSearchText() string {
-	return PLACES_BASE + ":" + SEARCH_TEXT
+	return PLACES_BASE_PLACES + ":" + SEARCH_TEXT
+}
+
+func urlPlacesPhotoWName(name string) string {
+	return PLACES_BASE + "/" + name + "/" + MEDIA
 }
