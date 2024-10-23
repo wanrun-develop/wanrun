@@ -1,14 +1,18 @@
-CREATE TYPE grant_type_enum AS ENUM ('PASSWORD', 'OAUTH');
+-- CREATE TYPE IF NOT EXISTSのオプションがないため
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'grant_type_enum') THEN
+        CREATE TYPE grant_type_enum AS ENUM ('PASSWORD', 'OAUTH');
+    END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS auth_dog_owners (
-    auth_dog_owner_id serial primary key,
-    dog_owner_id bigint not null,
-    password varchar(256),  -- パスワード認証用のパスワード。OAuth認証の場合はNULL。
-    email varchar(255),  -- パスワード認証で使うemail。OAuth認証の場合はNULL。
-    phone_number varchar(15),  -- パスワード認証で使うphone_number。OAuth認証の場合はNULL。
-    grant_type grant_type_enum not null,  -- 認証方式のEnum型 (PASSWORD または OAUTH)
-    login_at timestamp,
-
-   -- grant_typeが'PASSWORD'の場合にのみemailかphone_numberのどちらかが必須
-    CHECK ((grant_type = 'PASSWORD' AND (email IS NOT NULL OR phone_number IS NOT NULL)) OR grant_type = 'OAUTH')
+    auth_dog_owner_id serial primary key,         -- PK
+    dog_owner_id bigint not null,                 -- dog_ownersへの外部キー
+    grant_type grant_type_enum not null,          -- 認証方式のEnum型 (PASSWORD または OAUTH)
+    access_token VARCHAR(512),                    -- アクセストークン（OAuth 認証の場合のみ）
+    refresh_token VARCHAR(512),                   -- リフレッシュトークン（OAuth 認証の場合のみ）
+    access_token_expiration timestamp,            -- アクセストークンの有効期限
+    refresh_token_expiration timestamp,           -- リフレッシュトークンの有効期限（オプション）
+    login_at timestamp
 );
