@@ -82,28 +82,3 @@ func ValidateOAuthResCode(authorizationCode string, oauthErrorCode string) error
 	// どちらのパラメータもない場合は不正なリクエストとしてエラーを返す
 	return errOAuthInvalidReq
 }
-
-func ValidateEmailOrPhoneNumber(email string, phoneNumber string) error {
-	// 両方が空の場合はエラー
-	if email == "" && phoneNumber == "" {
-		wrErr := wrErrors.NewWRError(
-			errPasswordBothEmpty,
-			"emailかphone numberのどちらも空です",
-			wrErrors.NewDogownerClientErrorEType(),
-		)
-		return wrErr
-	}
-
-	// 両方に値が入っている場合もエラー
-	if email != "" && phoneNumber != "" {
-		wrErr := wrErrors.NewWRError(
-			errPasswordBothFilled,
-			"emailとphone numberのどちらも値が入っています",
-			wrErrors.NewDogownerClientErrorEType(),
-		)
-		return wrErr
-	}
-
-	// どちらか片方だけが入力されている場合は正常
-	return nil
-}

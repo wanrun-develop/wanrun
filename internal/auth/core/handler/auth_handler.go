@@ -9,8 +9,8 @@ import (
 	"github.com/wanrun-develop/wanrun/internal/auth/adapters/repository"
 	"github.com/wanrun-develop/wanrun/internal/auth/core/dto"
 	model "github.com/wanrun-develop/wanrun/internal/models"
-	"github.com/wanrun-develop/wanrun/internal/models/types"
 	_ "github.com/wanrun-develop/wanrun/internal/models/types"
+	wrErrors "github.com/wanrun-develop/wanrun/pkg/errors"
 
 	// _ wrErrors "github.com/wanrun-develop/wanrun/pkg/errors"
 	"github.com/wanrun-develop/wanrun/pkg/log"
@@ -20,7 +20,7 @@ import (
 )
 
 type IAuthHandler interface {
-	SignUp(c echo.Context, reqADOD dto.ReqAuthDogOwnerDto, grantType types.GrantType) (dto.ResDogOwnerDto, error)
+	SignUp(c echo.Context, reqADOD dto.ReqAuthDogOwnerDto) (dto.ResDogOwnerDto, error)
 	// LogIn(c echo.Context, reqADOD dto.ReqAuthDogOwnerDto) (dto.ResDogOwnerDto, error)
 	// LogOut() error
 	// GoogleOAuth(c echo.Context, authorizationCode string, grantType types.GrantType) (dto.ResDogOwnerDto, error)
@@ -39,7 +39,7 @@ func NewAuthHandler(ar repository.IAuthRepository) IAuthHandler {
 }
 
 // SignUp
-func (ah *authHandler) SignUp(c echo.Context, rado dto.ReqAuthDogOwnerDto, gt types.GrantType) (dto.ResDogOwnerDto, error) {
+func (ah *authHandler) SignUp(c echo.Context, rado dto.ReqAuthDogOwnerDto) (dto.ResDogOwnerDto, error) {
 	logger := log.GetLogger(c).Sugar()
 
 	// パスワードのハッシュ化
@@ -47,22 +47,27 @@ func (ah *authHandler) SignUp(c echo.Context, rado dto.ReqAuthDogOwnerDto, gt ty
 
 	if err != nil {
 		logger.Error(err)
-		return dto.ResDogOwnerDto{}, err
+		wrErr := wrErrors.NewWRError(
+			err,
+			"パスワードに不正な文字列が入っております。",
+			wrErrors.NewDogownerClientErrorEType(),
+		)
+		return dto.ResDogOwnerDto{}, wrErr
 	}
 
 	// EmailとPhoneNumberのバリデーション
-	if wrErr := dto.ValidateEmailOrPhoneNumber(rado.Email, rado.PhoneNumber); wrErr != nil {
+	if wrErr := validateEmailOrPhoneNumber(rado.Email, rado.PhoneNumber); wrErr != nil {
 		logger.Error(wrErr)
 		return dto.ResDogOwnerDto{}, wrErr
 	}
 
-	// requestからauthDogOwnerの構造体に詰め替え
+	// requestからDogOwnerの構造体に詰め替え
 	dogOwnerCredential := model.DogOwnerCredential{
 		Email:       wrUtil.NewSqlNullString(rado.Email),
 		PhoneNumber: wrUtil.NewSqlNullString(rado.PhoneNumber),
 		Password:    wrUtil.NewSqlNullString(string(hash)),
+		GrantType:   wrUtil.NewSqlNullString(model.PASSWORD_GRANT_TYPE), // Password認証
 		AuthDogOwner: model.AuthDogOwner{
-			GrantType: gt,
 			DogOwner: model.DogOwner{
 				Name: wrUtil.NewSqlNullString(rado.DogOwnerName),
 			},
@@ -189,3 +194,32 @@ Google OAuth認証
 
 // 	return resDogOwner, nil
 // }
+
+/*
+EmailかPhoneNumberの識別バリデーション
+パスワード認証は、EmailかPhoneNumberで登録するための
+*/
+func validateEmailOrPhoneNumber(email string, phoneNumber string) error {
+	// 両方が空の場合はエラー
+	if email == "" && phoneNumber == "" {
+		wrErr := wrErrors.NewWRError(
+			nil,
+			"Emailと電話番号のどちらも空です",
+			wrErrors.NewDogownerClientErrorEType(),
+		)
+		return wrErr
+	}
+
+	// 両方に値が入っている場合もエラー
+	if email != "" && phoneNumber != "" {
+		wrErr := wrErrors.NewWRError(
+			nil,
+			"Emailと電話番号のどちらも値が入っています",
+			wrErrors.NewDogownerClientErrorEType(),
+		)
+		return wrErr
+	}
+
+	// どちらか片方だけが入力されている場合は正常
+	return nil
+}

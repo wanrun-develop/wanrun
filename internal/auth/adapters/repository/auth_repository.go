@@ -203,18 +203,18 @@ func (ar *authRepository) checkDuplicate(c echo.Context, field string, value sql
 	if err != nil {
 		wrErr := wrErrors.NewWRError(
 			err,
-			"failed to check existing value",
+			"DBからのデータ取得に失敗しました。",
 			wrErrors.NewDogownerServerErrorEType(),
 		)
 
-		logger.Errorf("Existing value error: %v", wrErr)
+		logger.Errorf("Failed to check existing value error: %v", wrErr)
 
 		return wrErr
 	}
 	if existingCount > 0 {
 		wrErr := wrErrors.NewWRError(
-			fmt.Errorf("%s already exists", field),
-			fmt.Sprintf("%s already exists", field),
+			nil,
+			fmt.Sprintf("%sの%vが以前に登録されております。", field, value),
 			wrErrors.NewDogownerClientErrorEType(),
 		)
 

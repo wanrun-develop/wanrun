@@ -10,7 +10,6 @@ import (
 	"github.com/wanrun-develop/wanrun/configs"
 	"github.com/wanrun-develop/wanrun/internal/auth/core/dto"
 	"github.com/wanrun-develop/wanrun/internal/auth/core/handler"
-	model "github.com/wanrun-develop/wanrun/internal/models"
 	"github.com/wanrun-develop/wanrun/internal/models/types"
 	_ "github.com/wanrun-develop/wanrun/internal/models/types"
 	"github.com/wanrun-develop/wanrun/pkg/errors"
@@ -87,14 +86,6 @@ GoogleのOAuth認証
 func (ac *authController) SignUp(c echo.Context) error {
 	logger := log.GetLogger(c).Sugar()
 
-	// GrantTypeの取得とGrantType型に変換
-	grantType, wrErr := createGrantType(c, types.OAUTH_IDENTIFICATION_HEADER, types.PASSWORD_GRANT_TYPE_HEADER)
-
-	if wrErr != nil {
-		logger.Error(wrErr)
-		return wrErr
-	}
-
 	reqADOD := dto.ReqAuthDogOwnerDto{}
 
 	if err := c.Bind(&reqADOD); err != nil {
@@ -104,7 +95,7 @@ func (ac *authController) SignUp(c echo.Context) error {
 	}
 
 	// dogOwnerのSignUp
-	resDogOwner, wrErr := ac.ah.SignUp(c, reqADOD, grantType)
+	resDogOwner, wrErr := ac.ah.SignUp(c, reqADOD)
 
 	if wrErr != nil {
 		return wrErr
@@ -142,7 +133,7 @@ jwtのトークン生成
 */
 func createToken(secretKey string, resAuthDogOwnerID uint64, expTime int) (string, error) {
 	// JWTのペイロード
-	claims := &model.AccountClaims{
+	claims := &dto.AccountClaims{
 		ID: strconv.FormatUint(uint64(resAuthDogOwnerID), 10), // stringにコンバート
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * time.Duration(expTime))), // 有効時間
