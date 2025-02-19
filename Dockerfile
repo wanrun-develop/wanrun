@@ -55,7 +55,9 @@ CMD ["air", "-c", ".air.toml"]
 ################################################################ 
 # Deploy
 ################################################################ 
-FROM --platform=arm64 amazonlinux:2023.6.20250203.1 AS deploy
+# FROM --platform=arm64 amazonlinux:2023.6.20250203.1 AS deploy
+FROM --platform=linux/arm64 public.ecr.aws/amazonlinux/amazonlinux:2023 AS deploy
+
 ENV TZ=Asia/Tokyo
 
 WORKDIR /go
