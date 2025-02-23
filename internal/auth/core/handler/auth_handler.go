@@ -203,7 +203,7 @@ func (ah *authHandler) VerifyRequestAndFetchAuthDogOwnerRefresh(c echo.Context, 
 	claims := &AccountClaims{}
 
 	// 署名キーを指定
-	token, err := jwt.ParseWithClaims(refreshToken, claims, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(refreshToken, claims, func(token *jwt.Token) (any, error) {
 		// 署名アルゴリズムが適切かチェック
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			err := wrErrors.NewWRError(nil, fmt.Sprintf("unexpected signing method: %v", token.Header["alg"]), wrErrors.NewAuthServerErrorEType())
@@ -498,7 +498,7 @@ func createToken(
 
 	// JWTのペイロード
 	claims := AccountClaims{
-		UserID: uaDTO.UserID, // stringにコンバート
+		UserID: uaDTO.UserID,
 		Role:   uaDTO.RoleID,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: expiresNumericDate, // 有効時間
