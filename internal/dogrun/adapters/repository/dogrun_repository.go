@@ -11,9 +11,13 @@ import (
 )
 
 type IDogrunRepository interface {
+	WithDogrun() IDogrunRepository
+	WithDogrunTags() IDogrunRepository
+	WithRegularBusinessHours() IDogrunRepository
+	WithSpecialBusinessHours() IDogrunRepository
 	GetDogrunByPlaceID(echo.Context, string) (model.Dogrun, error)
 	GetDogrunByID(string) (model.Dogrun, error)
-	FindDogrunByIDs([]int64) ([]model.Dogrun, error)
+	FindDogrunByIDs(echo.Context, []int64) ([]model.Dogrun, error)
 	GetDogrunByRectanglePointerOrPlaceId(echo.Context, dto.SearchAroundRectangleCondition, []string) ([]model.Dogrun, error)
 	GetDogrunByRectanglePointerAndDogrunTags(echo.Context, dto.SearchAroundRectangleCondition) ([]model.Dogrun, error)
 	GetTagMst(echo.Context) ([]model.TagMst, error)
@@ -28,15 +32,26 @@ func NewDogrunRepository(db *gorm.DB) IDogrunRepository {
 	return &dogrunRepository{db}
 }
 
+func (drr *dogrunRepository) WithDogrun() IDogrunRepository {
+	return &dogrunRepository{drr.db.Preload("Dogrun")}
+}
+func (drr *dogrunRepository) WithDogrunTags() IDogrunRepository {
+	return &dogrunRepository{drr.db.Preload("DogrunTags")}
+}
+func (drr *dogrunRepository) WithRegularBusinessHours() IDogrunRepository {
+	return &dogrunRepository{drr.db.Preload("RegularBusinessHours")}
+}
+func (drr *dogrunRepository) WithSpecialBusinessHours() IDogrunRepository {
+	return &dogrunRepository{drr.db.Preload("SpecialBusinessHours")}
+}
+
 /*
 PlaceIDで、ドッグランの取得
 */
 func (drr *dogrunRepository) GetDogrunByPlaceID(c echo.Context, placeID string) (model.Dogrun, error) {
 	logger := log.GetLogger(c).Sugar()
 	dogrun := model.Dogrun{}
-	if err := drr.db.Preload("DogrunTags").
-		Preload("RegularBusinessHours").
-		Preload("SpecialBusinessHours").
+	if err := drr.db.
 		Where("place_id = ?", placeID).
 		Find(&dogrun).Error; err != nil {
 		logger.Error(err)
@@ -65,10 +80,11 @@ func (drr *dogrunRepository) GetDogrunByID(id string) (model.Dogrun, error) {
 // return:
 //   - []model.Dogrun:	検索結果
 //   - error:	エラー
-func (drr *dogrunRepository) FindDogrunByIDs(ids []int64) ([]model.Dogrun, error) {
+func (drr *dogrunRepository) FindDogrunByIDs(c echo.Context, ids []int64) ([]model.Dogrun, error) {
 	dogruns := []model.Dogrun{}
 	if err := drr.db.Where("dogrun_id in ?", ids).Find(&dogruns).Error; err != nil {
-		return dogruns, err
+		log.GetLogger(c).Sugar()
+		return nil, errors.NewWRError(err, "DBからのdogrunデータ取得に失敗", errors.NewDogrunServerErrorEType())
 	}
 	return dogruns, nil
 }
@@ -86,9 +102,7 @@ func (drr *dogrunRepository) FindDogrunByIDs(ids []int64) ([]model.Dogrun, error
 func (drr *dogrunRepository) GetDogrunByRectanglePointerOrPlaceId(c echo.Context, condition dto.SearchAroundRectangleCondition, placeIDs []string) ([]model.Dogrun, error) {
 	logger := log.GetLogger(c).Sugar()
 	dogruns := []model.Dogrun{}
-	if err := drr.db.Preload("DogrunTags").
-		Preload("RegularBusinessHours").
-		Preload("SpecialBusinessHours").
+	if err := drr.db.
 		Where("(longitude BETWEEN ? AND ?) AND (latitude BETWEEN ? AND ?)",
 			condition.Target.Southwest.Longitude, condition.Target.Northeast.Longitude,
 			condition.Target.Southwest.Latitude, condition.Target.Northeast.Latitude).
@@ -117,10 +131,10 @@ func (drr *dogrunRepository) GetDogrunByRectanglePointerAndDogrunTags(c echo.Con
 			condition.Target.Southwest.Longitude, condition.Target.Northeast.Longitude,
 			condition.Target.Southwest.Latitude, condition.Target.Northeast.Latitude).
 		Where("dogrun_tags.tag_id IN ?", condition.IncludeDogrunTags).
-		Group("dogruns.dogrun_id"). // dogruns の重複を排除
-		Preload("DogrunTags").
-		Preload("RegularBusinessHours").
-		Preload("SpecialBusinessHours").
+		Group("dogruns.dogrun_id").      // dogruns の重複を排除
+		Preload("DogrunTags").           //where後にpreload
+		Preload("RegularBusinessHours"). //where後にpreload
+		Preload("SpecialBusinessHours"). //where後にpreload
 		Find(&dogruns).Error; err != nil {
 		logger.Error(err)
 		return nil, errors.NewWRError(err, "DBからのデータ取得に失敗", errors.NewDogrunServerErrorEType())

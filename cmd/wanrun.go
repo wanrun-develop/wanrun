@@ -131,6 +131,7 @@ func newRouter(e *echo.Echo, dbConn *gorm.DB) {
 	dogrun.GET("/photo/src", dogrunController.GetDogrunPhoto, authMW.RoleAuthorization(authMW.DOGRUN_REFER))
 	dogrun.GET("/mst/tag", dogrunController.GetDogrunTagMst, authMW.RoleAuthorization(authMW.ALL))
 	dogrun.POST("/search", dogrunController.SearchAroundDogruns, authMW.RoleAuthorization(authMW.DOGRUN_SEARCH))
+	dogrun.POST("/bookmark", dogrunController.GetBookmarkedDogruns, authMW.RoleAuthorization(authMW.DOGRUN_SEARCH))
 
 	// dogOwner関連
 	dogOwnerController := newDogOwner(dbConn)
