@@ -143,6 +143,7 @@ jobs:
       - name: Set ECS Task Definition ARN
         run: echo "ECS_TASK_DEFINITION_ARN=arn:aws:ecs:${AWS_REGION}:${{ vars.DEVELOP_AWS_ACCOUNT }}:task-definition/${ECS_TASK_DEFINITION}" >> $GITHUB_ENV
 
+      # NOTE: https://github.com/aws/containers-roadmap/issues/2013
       - name: Retrieve Current ECS Task Definition
         run: |
           aws ecs describe-task-definition --task-definition ${ECS_TASK_DEFINITION_ARN} --query taskDefinition | jq -r 'del(
