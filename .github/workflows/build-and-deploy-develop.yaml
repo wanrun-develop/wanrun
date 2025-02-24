@@ -25,14 +25,22 @@ on:
           - develop
 
 env:
+  # aws
   AWS_REGION: ap-northeast-1
   AWS_ROLE_ARN: arn:aws:iam::${{ vars.DEVELOP_AWS_ACCOUNT }}:role/github-actions
 
+  # ecs
   ECR_REPOSITORY: wr-${{ vars.ENV }}-wanrun
   ECS_SERVICE: wr-${{ vars.ENV }}-wanrun
   ECS_CLUSTER: wr-${{ vars.ENV }}-cluster
   ECS_TASK_DEFINITION: wr-${{ vars.ENV }}-wanrun 
   CONTAINER_NAME: wanrun
+
+  # env
+  SERVICE_NAME: wr
+  ENV: ${{ vars.ENV }}
+  UPPERCASE_SERVICE_NAME: WR
+  UPPERCASE_ENV: ${{ vars.UPPERCASE_ENV }}
 
 jobs:
   go-build:
