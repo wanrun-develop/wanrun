@@ -163,13 +163,14 @@ jobs:
             .registeredAt,
             .registeredBy
           )' > task-definition.json
+          cat task-definition.json
 
       - name: Replace Placeholders in Task Definition
         run: |
-          sed -i -e s/__SERVICE_NAME__/$SERVICE_NAME/g task-definition.json
-          sed -i -e s/__ENV__/$ENV/g task-definition.json
-          sed -i -e s/__UPPERCASE_SERVICE_NAME__/$UPPERCASE_SERVICE_NAME/g task-definition.json
-          sed -i -e s/__UPPERCASE_ENV__/$UPPERCASE_ENV/g task-definition.json
+          sed -i -e s|__SERVICE_NAME__|$SERVICE_NAME|g task-definition.json
+          sed -i -e s|__ENV__|$ENV|g task-definition.json
+          sed -i -e s|__UPPERCASE_SERVICE_NAME__|$UPPERCASE_SERVICE_NAME|g task-definition.json
+          sed -i -e s|__UPPERCASE_ENV__|$UPPERCASE_ENV|g task-definition.json
 
       - name: Fill in the new image ID in the Amazon ECS task definition
         id: task-def
