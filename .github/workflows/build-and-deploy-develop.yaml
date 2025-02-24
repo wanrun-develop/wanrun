@@ -143,7 +143,7 @@ jobs:
       - name: Set ECS Task Definition ARN
         run: echo "ECS_TASK_DEFINITION_ARN=arn:aws:ecs:${AWS_REGION}:${{ vars.DEVELOP_AWS_ACCOUNT }}:task-definition/${ECS_TASK_DEFINITION}" >> $GITHUB_ENV
 
-      - name: Download Active Task Definition from AWS
+      - name: Retrieve Current ECS Task Definition
         run: |
           aws ecs describe-task-definition --task-definition ${ECS_TASK_DEFINITION_ARN} --query taskDefinition | jq -r 'del(
             .taskDefinitionArn,
@@ -155,7 +155,7 @@ jobs:
             .registeredBy
           )' > task-definition.json
 
-      - name: replace taskdefinition placefolder
+      - name: Replace Placeholders in Task Definition
         run: |
           sed -i -e s/__SERVICE_NAME__/$SERVICE_NAME/g task-definition.json
           sed -i -e s/__ENV__/$ENV/g task-definition.json
