@@ -140,11 +140,33 @@ jobs:
         if: always()
         run: docker logout ${{ steps.login-ecr.outputs.registry }}
 
+      - name: Set ECS Task Definition ARN
+        run: echo "ECS_TASK_DEFINITION_ARN=arn:aws:ecs:${AWS_REGION}:${{ vars.DEVELOP_AWS_ACCOUNT }}:task-definition/${ECS_TASK_DEFINITION}" >> $GITHUB_ENV
+
+      - name: Download Active Task Definition from AWS
+        run: |
+          aws ecs describe-task-definition --task-definition ${ECS_TASK_DEFINITION_ARN} --query taskDefinition | jq -r 'del(
+            .taskDefinitionArn,
+            .requiresAttributes,
+            .compatibilities,
+            .revision,
+            .status,
+            .registeredAt,
+            .registeredBy
+          )' > task-definition.json
+
+      - name: replace taskdefinition placefolder
+        run: |
+          sed -i -e s/__SERVICE_NAME__/$SERVICE_NAME/g task-definition.json
+          sed -i -e s/__ENV__/$ENV/g task-definition.json
+          sed -i -e s/__UPPERCASE_SERVICE_NAME__/$UPPERCASE_SERVICE_NAME/g task-definition.json
+          sed -i -e s/__UPPERCASE_ENV__/$UPPERCASE_ENV/g task-definition.json
+
       - name: Fill in the new image ID in the Amazon ECS task definition
         id: task-def
         uses: aws-actions/amazon-ecs-render-task-definition@v1.6.2
         with:
-          task-definition: ${{ env.ECS_TASK_DEFINITION }}
+          task-definition: task-definition.json
           container-name: ${{ env.CONTAINER_NAME }}
           image: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
 
