@@ -25,18 +25,61 @@ on:
           - develop
 
 env:
+  # aws
   AWS_REGION: ap-northeast-1
   AWS_ROLE_ARN: arn:aws:iam::${{ vars.DEVELOP_AWS_ACCOUNT }}:role/github-actions
 
+  # ecs
   ECR_REPOSITORY: wr-${{ vars.ENV }}-wanrun
   ECS_SERVICE: wr-${{ vars.ENV }}-wanrun
   ECS_CLUSTER: wr-${{ vars.ENV }}-cluster
   ECS_TASK_DEFINITION: wr-${{ vars.ENV }}-wanrun 
   CONTAINER_NAME: wanrun
 
+  # env
+  SERVICE_NAME: wr
+  ENV: ${{ vars.ENV }}
+  UPPERCASE_SERVICE_NAME: WR
+  UPPERCASE_ENV: ${{ vars.UPPERCASE_ENV }}
+
 jobs:
-  deploy:
-    name: Build and Deploy
+  go-build:
+    name: Go Build
+    runs-on: ubuntu-latest
+    environment: develop
+    permissions: 
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+
+      - name: Go Setup
+        uses: actions/setup-go@v5.3.0
+        id: setup-go
+        with:
+          go-version: 1.21.1
+          cache: true
+
+      - name: Download Go Modules
+        if: ${{ steps.setup-go.outputs.cache-hit != 'true' }}
+        run: go mod download
+
+      - name: Build Go Binary
+        run: | 
+          GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -o main -trimpath -ldflags "-s -w" cmd/wanrun/main.go
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4.6.0
+        with:
+          name: wanrun-arm64
+          path: main
+          if-no-files-found: error
+          retention-days: 1
+
+  build-and-deploy:
+    name: Docker Build And Deploy
+    needs: go-build
     runs-on: ubuntu-latest
     environment: develop
     permissions: 
@@ -46,6 +89,19 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4.2.2
+        with:
+          sparse-checkout: |
+            Dockerfile
+            .dockerignore
+
+      - name: Download Artifact
+        uses: actions/download-artifact@v4.1.8
+        with:
+          name: wanrun-arm64
+          path: .
+
+      - name: Check Artifact
+        run: ls -al
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4.0.2
@@ -78,22 +134,49 @@ jobs:
         uses: docker/build-push-action@v6.13.0
         with:
             context: ./
+            platforms: linux/arm64
+            target: deploy
             file: ./Dockerfile
             builder: ${{ steps.buildx.outputs.name }}
             push: true
             tags: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
-            cache-from: type=local,src=/tmp/.buildx-cache
-            cache-to: type=local,dest=/tmp/.buildx-cache
+            cache-from: type=gha
+            cache-to: type=gha,mode=max
+            github-token: ${{ secrets.GITHUB_TOKEN }} 
 
       - name: Logout from Amazon ECR
         if: always()
         run: docker logout ${{ steps.login-ecr.outputs.registry }}
 
+      - name: Set ECS Task Definition ARN
+        run: echo "ECS_TASK_DEFINITION_ARN=arn:aws:ecs:${AWS_REGION}:${{ vars.DEVELOP_AWS_ACCOUNT }}:task-definition/${ECS_TASK_DEFINITION}" >> $GITHUB_ENV
+
+      # NOTE: https://github.com/aws/containers-roadmap/issues/2013
+      - name: Retrieve Current ECS Task Definition
+        run: |
+          aws ecs describe-task-definition --task-definition ${ECS_TASK_DEFINITION_ARN} --query taskDefinition | jq -r 'del(
+            .taskDefinitionArn,
+            .requiresAttributes,
+            .compatibilities,
+            .revision,
+            .status,
+            .registeredAt,
+            .registeredBy
+          )' > task-definition.json
+          cat task-definition.json
+
+      - name: Replace Placeholders in Task Definition
+        run: |
+          sed -i -e s*__SERVICE_NAME__*$SERVICE_NAME*g task-definition.json
+          sed -i -e s*__ENV__*$ENV*g task-definition.json
+          sed -i -e s*__UPPERCASE_SERVICE_NAME__*$UPPERCASE_SERVICE_NAME*g task-definition.json
+          sed -i -e s*__UPPERCASE_ENV__*$UPPERCASE_ENV*g task-definition.json
+
       - name: Fill in the new image ID in the Amazon ECS task definition
         id: task-def
         uses: aws-actions/amazon-ecs-render-task-definition@v1.6.2
         with:
-          task-definition: ${{ env.ECS_TASK_DEFINITION }}
+          task-definition: task-definition.json
           container-name: ${{ env.CONTAINER_NAME }}
           image: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
 
@@ -104,3 +187,10 @@ jobs:
           service: ${{ env.ECS_SERVICE }}
           cluster: ${{ env.ECS_CLUSTER }}
           wait-for-service-stability: true
+
+      - name: Delete Artifact
+        uses: geekyeggo/delete-artifact@v5.1.0
+        if: always()
+        with:
+          name: wanrun-arm64
+          failOnError: true
