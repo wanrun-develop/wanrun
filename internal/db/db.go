@@ -15,12 +15,13 @@ func NewDB() (*gorm.DB, error) {
 	config := configs.DbInfo()
 	fmt.Printf("DB info: %+v\n", *config)
 
-	postgresUrl := fmt.Sprintf("postgres://%s:%s@%s:%s/%s",
+	postgresUrl := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?search_path=%s",
 		config.PostgresUser(),
 		config.PostgresPassword(),
 		config.PostgresHost(),
 		config.PostgresPort(),
-		config.PostgresDB())
+		config.PostgresDB(),
+		"wanrun")
 
 	// logレベルの取得
 	logLevel := getLoggerLevel()
