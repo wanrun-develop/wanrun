@@ -17,3 +17,8 @@ func (ct WRTime) MarshalJSON() ([]byte, error) {
 	formatted := fmt.Sprintf("\"%s\"", ct.Format(F_yyyyMMddHHmmss))
 	return []byte(formatted), nil
 }
+
+type PaginationReq struct {
+	Count int `json:"count" validate:"min=1,max=60"`
+	Page  int `json:"page" validate:"min=1,max=100"`
+}

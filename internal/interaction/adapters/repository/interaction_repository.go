@@ -13,6 +13,7 @@ import (
 
 type IBookmarkRepository interface {
 	GetBookmarks(echo.Context, int64) ([]model.DogrunBookmark, error)
+	GetBookmarksByPage(echo.Context, int64, int, int) ([]model.DogrunBookmark, error)
 	AddBookmark(echo.Context, int64, int64) (int64, error)
 	FindDogrunBookmark(echo.Context, int64, int64) (model.DogrunBookmark, error)
 	DeleteBookmark(echo.Context, []int64, int64) error
@@ -27,6 +28,7 @@ func NewBookmarkRepository(db *gorm.DB) IBookmarkRepository {
 }
 
 // GetBookmarks: dogownerのブックマークを取得
+// 新しい順で全件取得
 //
 // args:
 //   - echo.Context:	コンテキスト
@@ -41,6 +43,36 @@ func (r *bookmarkRepository) GetBookmarks(c echo.Context, dogownerID int64) ([]m
 	bookmarks := []model.DogrunBookmark{}
 	if err := r.db.
 		Where("dog_owner_id = ?", dogownerID).
+		Order("saved_at DESC").
+		Find(&bookmarks).Error; err != nil {
+		logger.Error(err)
+		err := errors.NewWRError(err, "dogrun_bookmarksの検索に失敗しました。", errors.NewInteractionServerErrorEType())
+		return nil, err
+	}
+
+	return bookmarks, nil
+}
+
+// GetBookmarks: dogownerのブックマークを取得
+// 新しい順でpageで指定数の取得
+//
+// args:
+//   - echo.Context:	コンテキスト
+//   - int64:	ドッグオーナーID
+//   - common.PaginationReq:	ページネーション設定
+//
+// return:
+//   - []model.DogrunBookmark:	検索結果
+//   - error:	エラー
+func (r *bookmarkRepository) GetBookmarksByPage(c echo.Context, dogownerID int64, limit int, offset int) ([]model.DogrunBookmark, error) {
+	logger := log.GetLogger(c).Sugar()
+
+	bookmarks := []model.DogrunBookmark{}
+	if err := r.db.
+		Where("dog_owner_id = ?", dogownerID).
+		Order("saved_at DESC").
+		Limit(limit).
+		Offset(offset).
 		Find(&bookmarks).Error; err != nil {
 		logger.Error(err)
 		err := errors.NewWRError(err, "dogrun_bookmarksの検索に失敗しました。", errors.NewInteractionServerErrorEType())

@@ -31,7 +31,7 @@ func NewDogrunFacade(drr repository.IDogrunRepository) IDogrunFacade {
 func (h *dogrunFacade) CheckDogrunExistByIDs(c echo.Context, dogrunIDs []int64) error {
 	logger := log.GetLogger(c).Sugar()
 
-	dogrunResults, err := h.drr.FindDogrunByIDs(dogrunIDs)
+	dogrunResults, err := h.drr.FindDogrunByIDs(c, dogrunIDs)
 	if err != nil {
 		err = errors.NewWRError(err, "dogrun存在チェックでエラー", errors.NewDogrunClientErrorEType())
 		return err

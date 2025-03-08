@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
+	"github.com/wanrun-develop/wanrun/common"
 	"github.com/wanrun-develop/wanrun/internal/dogrun/core/dto"
 	"github.com/wanrun-develop/wanrun/internal/dogrun/core/handler"
 	"github.com/wanrun-develop/wanrun/pkg/errors"
@@ -18,6 +19,7 @@ type IDogrunController interface {
 	GetDogrunTagMst(echo.Context) error
 	SearchAroundDogruns(echo.Context) error
 	GetDogrunPhoto(echo.Context) error
+	GetBookmarkedDogruns(echo.Context) error
 }
 
 type dogrunController struct {
@@ -157,4 +159,37 @@ func validateMaxPX(px string) error {
 		return errors.NewWRError(nil, "リクエストの画像サイズの指定が不正です。1以上4800以下である必要があります。", errors.NewDogrunClientErrorEType())
 	}
 	return nil
+}
+
+// GetBookmarkedDogruns: ブックマークしたドッグランの一覧取得
+//
+// args:
+//   - echo.Context:	コンテキスト
+//
+// return:
+// error:	エラー
+func (dc *dogrunController) GetBookmarkedDogruns(c echo.Context) error {
+	logger := log.GetLogger(c).Sugar()
+
+	pagination := common.PaginationReq{}
+	if err := c.Bind(&pagination); err != nil {
+		err = errors.NewWRError(err, "paginationが不正です", errors.NewDogrunClientErrorEType())
+		logger.Error(err)
+		return err
+	}
+
+	// バリデータのインスタンス作成
+	validate := validator.New()
+	//リクエストボディのバリデーション
+	if err := validate.Struct(pagination); err != nil {
+		err = errors.NewWRError(err, "paginationのバリデーションに違反しています", errors.NewDogrunClientErrorEType())
+		logger.Error(err)
+		return err
+	}
+
+	dogruns, err := dc.h.GetBookmarkedDogruns(c, pagination)
+	if err != nil {
+		return err
+	}
+	return c.JSON(http.StatusOK, dogruns)
 }
