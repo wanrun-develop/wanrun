@@ -26,9 +26,8 @@ func init() {
 		// 設定ファイルが見つからない場合はスキップ
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			fmt.Println("設定ファイルが見つかりませんでした。環境変数とデフォルト設定を使用します。")
-			// 他のエラーは落とす
 		} else {
-			log.Fatalf("設定ファイルの読み込み中にエラーが発生しました: %s \n", err)
+			log.Fatalf("設定ファイルの読み込み中にエラーが発生しました: %s \n", err) // 他のエラーは落とす
 		}
 	}
 }
