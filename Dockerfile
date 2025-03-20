@@ -41,6 +41,8 @@ RUN groupadd -g 10001 wanrun \
 
 COPY main .
 
+RUN chmod +x ./main
+
 EXPOSE 8080
 
 USER wanrun
