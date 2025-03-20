@@ -15,7 +15,7 @@ import (
 
 type IDogrunController interface {
 	GetDogrunDetail(echo.Context) error
-	GetDogrun(echo.Context) error
+	GetDogrunDetailByID(echo.Context) error
 	GetDogrunTagMst(echo.Context) error
 	SearchAroundDogruns(echo.Context) error
 	GetDogrunPhoto(echo.Context) error
@@ -45,10 +45,42 @@ func (dc *dogrunController) GetDogrunDetail(c echo.Context) error {
 	return c.JSON(http.StatusOK, dogrun)
 }
 
-func (dc *dogrunController) GetDogrun(c echo.Context) error {
-	id := c.Param("id")
-	dc.h.GetDogrunByID(id)
-	return nil
+// GetDogrunDetailByID: DogrunIDによるドッグラン詳細情報の取得
+//
+// args:
+//   - echo.Context:	コンテキスト
+//
+// return:
+//   - error:	エラー
+func (dc *dogrunController) GetDogrunDetailByID(c echo.Context) error {
+	logger := log.GetLogger(c).Sugar()
+
+	dogrunIDStr := c.Param("dogrunId")
+	logger.Info("リクエストdogrun id :", dogrunIDStr)
+
+	// ドッグランIDのバリデーション
+	if dogrunIDStr == "" {
+		err := errors.NewWRError(nil, "dogrun idが指定されていません", errors.NewDogrunClientErrorEType())
+		logger.Error(err)
+		return err
+	}
+
+	// 数値形式チェック
+	dogrunID, err := strconv.ParseInt(dogrunIDStr, 10, 64)
+	if err != nil {
+		wrErr := errors.NewWRError(err, "dogrun idの形式が不正です", errors.NewDogrunClientErrorEType())
+		logger.Error(wrErr)
+		return wrErr
+	}
+
+	dogrun, err := dc.h.GetDogrunDetailByID(c, dogrunID)
+	if err != nil {
+		// すでにWRErrorである場合は変換せずにログを出力して返す
+		logger.Error(err)
+		return err
+	}
+
+	return c.JSON(http.StatusOK, dogrun)
 }
 
 // GetDogrunTagMst: DogrunTagMstのマスターデータの取得

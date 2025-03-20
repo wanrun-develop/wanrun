@@ -24,13 +24,13 @@ const (
 
 type IDogrunHandler interface {
 	GetDogrunDetail(echo.Context, string) (dto.DogrunDetail, error)
-	GetDogrunByID(string)
 	GetDogrunTagMst(echo.Context) ([]dto.TagMstRes, error)
 	SearchAroundDogruns(echo.Context, dto.SearchAroundRectangleCondition) ([]dto.DogrunLists, error)
 	SearchAroundAndTagDogruns(echo.Context, dto.SearchAroundRectangleCondition) ([]dto.DogrunLists, error)
 	getBookmarkedDogrunIDs(echo.Context, chan<- []int64)
 	GetDogrunPhotoSrc(echo.Context, string, string, string) (string, error)
 	GetBookmarkedDogruns(echo.Context, common.PaginationReq) ([]dto.DogrunLists, error)
+	GetDogrunDetailByID(echo.Context, int64) (dto.DogrunDetail, error)
 }
 
 type dogrunHandler struct {
@@ -54,6 +54,8 @@ func NewDogrunHandler(rest googleplace.IRest, drr repository.IDogrunRepository, 
 //   - error:	エラー
 func (h *dogrunHandler) GetDogrunDetail(c echo.Context, placeID string) (dto.DogrunDetail, error) {
 	logger := log.GetLogger(c).Sugar()
+	logger.Infow("PlaceIDによるドッグラン詳細情報の取得開始", "placeID", placeID)
+
 	//base情報のFieldを使用
 	var baseFiled googleplace.IFieldMask = googleplace.BaseField{}
 	//place情報の取得
@@ -84,11 +86,76 @@ func (h *dogrunHandler) GetDogrunDetail(c echo.Context, placeID string) (dto.Dog
 
 	//情報選定
 	resDogDetail := resolveDogrunDetail(dogrunG, dogrunD)
+	logger.Infow("ドッグラン詳細情報の取得完了", "placeID", placeID)
 	return resDogDetail, nil
 }
 
-func (h *dogrunHandler) GetDogrunByID(id string) {
-	fmt.Println(h.drr.GetDogrunByID(id))
+// GetDogrunDetailByID: dogrunIdでDB検索して詳細情報を返す
+//
+// args:
+//   - echo.Context:	コンテキスト
+//   - string:	dogrunID
+//
+// return:
+//   - dto.DogrunDetail:	詳細DTO
+//   - error:	エラー
+func (h *dogrunHandler) GetDogrunDetailByID(c echo.Context, dogrunID int64) (dto.DogrunDetail, error) {
+	logger := log.GetLogger(c).Sugar()
+	logger.Infow("DogrunIDによるドッグラン詳細情報の取得開始", "dogrunID", dogrunID)
+
+	// DBからドッグラン情報を取得
+	dogrunD, err := h.drr.GetDogrunByID(dogrunID)
+	if err != nil {
+		logger.Error(err)
+		return dto.DogrunDetail{}, err
+	}
+
+	// ドッグランIDでデータが見つからない場合
+	if dogrunD.IsEmpty() {
+		err := errors.NewWRError(nil, "指定されたDogrunIDのデータが存在しません", errors.NewDogrunClientErrorEType())
+		logger.Error(err)
+		return dto.DogrunDetail{}, err
+	}
+
+	// PlaceIDが存在する場合はGoogle情報も取得
+	var dogrunG googleplace.BaseResource
+	if dogrunD.PlaceId.Valid && dogrunD.PlaceId.String != "" {
+		placeID := dogrunD.PlaceId.String
+		logger.Infow("Place IDが存在するためGoogle情報も取得", "placeID", placeID)
+
+		var baseFiled googleplace.IFieldMask = googleplace.BaseField{}
+		resG, err := h.rest.GETPlaceInfo(c, placeID, baseFiled)
+		if err == nil {
+			// JSONデータを構造体にデコード
+			if err := json.Unmarshal(resG, &dogrunG); err != nil {
+				wrErr := errors.NewWRError(err, "Google APIレスポンスの変換に失敗しました", errors.NewDogrunServerErrorEType())
+				logger.Warn(wrErr)
+				// エラーがあってもDB情報があるので続行
+			} else {
+				logger.Infow("Google Place APIによるドッグラン情報の取得成功")
+			}
+		} else {
+			wrErr := errors.NewWRError(err, "Google Place APIからの情報取得に失敗しました", errors.NewDogrunServerErrorEType())
+			logger.Warn(wrErr)
+			// Google APIからの取得に失敗してもDB情報があるので続行
+		}
+	}
+
+	// 情報選定と結合
+	resDogDetail := resolveDogrunDetail(dogrunG, dogrunD)
+
+	// 特定のdogrunIdに対するブックマーク情報を取得
+
+	isBookmarked, err := h.bf.GetBookmarkByDogrunID(c, dogrunID)
+	if err != nil {
+		logger.Warnw("ブックマーク情報の取得に失敗", "error", err)
+	} else {
+		resDogDetail.IsBookmarked = isBookmarked
+	}
+
+	logger.Infow("ドッグラン詳細情報の取得完了", "dogrunID", dogrunID)
+
+	return resDogDetail, nil
 }
 
 // GetDogrunTagMst: DogrunTagMstのマスターデータの取得
@@ -337,8 +404,10 @@ func resolveDogrunDetail(dogrunG googleplace.BaseResource, dogrunD model.Dogrun)
 		GoogleRating:    dogrunG.Rating,
 		UserRatingCount: dogrunG.UserRatingCount,
 		DogrunTags:      resolveDogrunTagInfo(dogrunD), // ドッグランタグ情報
+		Photos:          resolvePlacePhotos(dogrunG),   // 写真情報
 		CreateAt:        &dogrunD.CreateAt.Time,
 		UpdateAt:        &dogrunD.UpdateAt.Time,
+		IsManaged:       true,
 	}
 
 }
@@ -365,6 +434,8 @@ func resolveDogrunDetailByOnlyGoogle(dogrunG googleplace.BaseResource) dto.Dogru
 		Description:     dogrunG.Summary.Text,
 		GoogleRating:    dogrunG.Rating,
 		UserRatingCount: dogrunG.UserRatingCount,
+		Photos:          resolvePlacePhotos(dogrunG),
+		IsManaged:       false,
 	}
 }
 
@@ -389,6 +460,8 @@ func resolveDogrunDetailByOnlyDB(dogrunD model.Dogrun) dto.DogrunDetail {
 		},
 		Description: dogrunD.Description.String,
 		DogrunTags:  resolveDogrunTagInfo(dogrunD), // ドッグランタグ情報
+		Photos:      []dto.PhotoInfo{},             // DBのみの場合は写真なし
+		IsManaged:   true,                          // DBに存在する場合は管理されているとみなす
 		CreateAt:    &dogrunD.CreateAt.Time,
 		UpdateAt:    &dogrunD.UpdateAt.Time,
 	}

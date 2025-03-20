@@ -10,6 +10,7 @@ import (
 type IBookmarkFacade interface {
 	GetAllUserBookmarks(echo.Context) ([]int64, error)
 	GetAllUserBookmarksByPage(echo.Context, common.PaginationReq) ([]int64, error)
+	GetBookmarkByDogrunID(echo.Context, int64) (bool, error)
 }
 
 type bookmarkFacade struct {
@@ -76,4 +77,30 @@ func (f *bookmarkFacade) GetAllUserBookmarksByPage(c echo.Context, page common.P
 	}
 
 	return bookmarkedDogrunIDs, nil
+}
+
+// GetBookmarkByDogrunID: 特定のdogrunIdに対するブックマーク状態を取得
+//
+// args:
+//   - echo.Context:	コンテキスト
+//   - int64:	dogrunID 検索対象のドッグランID
+//
+// return:
+//   - bool:	ブックマーク済みかどうか
+//   - error:	エラー
+func (f *bookmarkFacade) GetBookmarkByDogrunID(c echo.Context, dogrunID int64) (bool, error) {
+	// ログインユーザーIDの取得
+	userID, err := wrcontext.GetLoginUserID(c)
+	if err != nil {
+		return false, err
+	}
+
+	// 指定されたdogrunIDのブックマーク情報を検索
+	bookmark, err := f.r.FindDogrunBookmark(c, dogrunID, userID)
+	if err != nil {
+		return false, err
+	}
+
+	// ブックマークが存在するかどうかを返す
+	return bookmark.IsNotEmpty(), nil
 }

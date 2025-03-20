@@ -19,6 +19,9 @@ type DogrunDetail struct {
 	GoogleRating    float32      `json:"googleRating,omitempty"`
 	UserRatingCount int          `json:"userRatingCount,omitempty"`
 	DogrunTags      []int64      `json:"dogrunTagId,omitempty"`
+	Photos          []PhotoInfo  `json:"photos,omitempty"`
+	IsBookmarked    bool         `json:"isBookmarked"`
+	IsManaged       bool         `json:"isManaged"`
 	CreateAt        *time.Time   `json:"createAt,omitempty"`
 	UpdateAt        *time.Time   `json:"updateAt,omitempty"`
 }
