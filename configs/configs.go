@@ -23,10 +23,13 @@ var profile string
 func init() {
 	profile = getEnv("APP_PROFILE", "dev")
 	if err := LoadConfig(); err != nil {
-		log.Fatalf("設定ファイルの読み込みに失敗しました: %s \n", err)
-	}
-	if CheckConfigChangeError() != nil {
-		log.Fatalf("設定ファイルの読み込みに失敗しました: %s \n", configChangeError)
+		// 設定ファイルが見つからない場合はスキップ
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			fmt.Println("設定ファイルが見つかりませんでした。環境変数とデフォルト設定を使用します。")
+			// 他のエラーは落とす
+		} else {
+			log.Fatalf("設定ファイルの読み込み中にエラーが発生しました: %s \n", err)
+		}
 	}
 }
 
