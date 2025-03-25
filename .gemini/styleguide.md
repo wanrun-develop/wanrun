@@ -1,3 +1,5 @@
+# あなたの回答は必ず日本語で行ってください。指定された成約は下記になります。
+
 # Company X Golang Style Guide
 
 # Introduction
@@ -92,4 +94,4 @@ func AuthenticateUser(storedHash, password string) bool {
 ```
 
 # LLM Answer
-* **Answer format:** Always respond in Japanese.
+* **Answer format:** 再度警告しますが、あなたの回答は必ず日本語で行ってください。
