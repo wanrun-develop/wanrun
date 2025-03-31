@@ -103,6 +103,10 @@ func Main() {
 	// Router設定
 	newRouter(e, dbConn)
 	e.GET("/test", internal.Test, authMW.RoleAuthorization(authMW.ALL))
+	// ヘルスチェック
+	e.GET("/health", func(c echo.Context) error {
+		return c.NoContent(http.StatusOK)
+	})
 
 	// 最大リクエストボディサイズの指定
 	e.Use(middleware.BodyLimit("10M")) // 最大10MB
@@ -111,9 +115,10 @@ func Main() {
 }
 
 func newRouter(e *echo.Echo, dbConn *gorm.DB) {
+	wanrun := e.Group("wanrun")
 	// dog関連
 	dogController := newDog(dbConn)
-	dog := e.Group("dog")
+	dog := wanrun.Group("dog")
 	dog.GET("/all", dogController.GetAllDogs, authMW.RoleAuthorization(authMW.SYSTEM))
 	dog.GET("/detail/:dogID", dogController.GetDogByID, authMW.RoleAuthorization(authMW.DOG_MANAGE))
 	dog.GET("/owned/:dogOwnerId", dogController.GetDogByDogOwnerID, authMW.RoleAuthorization(authMW.DOG_MANAGE))
@@ -125,7 +130,7 @@ func newRouter(e *echo.Echo, dbConn *gorm.DB) {
 
 	// dogrun関連
 	dogrunController := newDogrun(dbConn)
-	dogrun := e.Group("dogrun")
+	dogrun := wanrun.Group("dogrun")
 	dogrun.GET("/detail/:placeId", dogrunController.GetDogrunDetail, authMW.RoleAuthorization(authMW.DOGRUN_REFER))
 	dogrun.GET("/:id", dogrunController.GetDogrun, authMW.RoleAuthorization(authMW.DOGRUN_REFER))
 	dogrun.GET("/photo/src", dogrunController.GetDogrunPhoto, authMW.RoleAuthorization(authMW.DOGRUN_REFER))
@@ -135,12 +140,12 @@ func newRouter(e *echo.Echo, dbConn *gorm.DB) {
 
 	// dogOwner関連
 	dogOwnerController := newDogOwner(dbConn)
-	dogOwner := e.Group("dogowner")
+	dogOwner := wanrun.Group("dogowner")
 	dogOwner.POST("/signUp", dogOwnerController.DogOwnerSignUp)
 
 	// auth関連
 	authController := newAuth(dbConn)
-	auth := e.Group("auth")
+	auth := wanrun.Group("auth")
 	// dogowner
 	auth.POST("/dogowner/token", authController.LogInDogowner)
 	auth.POST("/dogowner/revoke", authController.RevokeDogowner, authMW.RoleAuthorization(authMW.DOG_MANAGE))
@@ -153,29 +158,24 @@ func newRouter(e *echo.Echo, dbConn *gorm.DB) {
 
 	//interaction関連
 	interactionController := newInteraction(dbConn)
-	bookmark := e.Group("bookmark")
+	bookmark := wanrun.Group("bookmark")
 	bookmark.POST("/dogrun", interactionController.AddBookmark, authMW.RoleAuthorization(authMW.DOGRUN_SEARCH))
 	bookmark.DELETE("/dogrun", interactionController.DeleteBookmarks, authMW.RoleAuthorization(authMW.DOGRUN_SEARCH))
 
-	access := e.Group("access")
+	access := wanrun.Group("access")
 	access.GET("/today/checkins", interactionController.GetTodayCheckins, authMW.RoleAuthorization(authMW.DOG_MANAGE))
 	access.POST("/checkin", interactionController.CheckinDogrun, authMW.RoleAuthorization(authMW.DOG_MANAGE))
 	access.DELETE("/checkout", interactionController.CheckoutDogrun, authMW.RoleAuthorization(authMW.DOG_MANAGE))
 
 	// cms関連
 	cmsController := newCms(dbConn)
-	cms := e.Group("cms")
+	cms := wanrun.Group("cms")
 	cms.POST("/upload/file", cmsController.UploadFile, authMW.RoleAuthorization(authMW.ALL))
 	cms.DELETE("", cmsController.DeleteFile, authMW.RoleAuthorization(authMW.ALL))
 
-	// ヘルスチェック
-	e.GET("/health", func(c echo.Context) error {
-		return c.NoContent(http.StatusOK)
-	})
-
 	// org関連
 	orgController := newOrg(dbConn)
-	org := e.Group("org")
+	org := wanrun.Group("org")
 	org.POST("/contract", orgController.OrgSignUp)
 }
 
