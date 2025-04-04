@@ -105,7 +105,7 @@ func Main() {
 	e.GET("/test", internal.Test, authMW.RoleAuthorization(authMW.ALL))
 	// ヘルスチェック
 	e.GET("/health", func(c echo.Context) error {
-		return c.NoContent(http.StatusOK)
+		return c.String(http.StatusOK, "ok")
 	})
 
 	// 最大リクエストボディサイズの指定
