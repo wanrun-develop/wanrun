@@ -106,7 +106,7 @@ func Main() {
 	// 最大リクエストボディサイズの指定
 	// e.Use(middleware.BodyLimit("10M")) // 最大10MB
 
-	e.Logger.Fatal(e.Start(":8080"))
+	e.Logger.Fatal(e.Start("0.0.0.0:8080"))
 }
 
 func newRouter(e *echo.Echo, dbConn *gorm.DB) {
