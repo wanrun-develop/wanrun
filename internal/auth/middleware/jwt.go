@@ -36,6 +36,7 @@ var skipPaths = []string{
 	"/org/contract",
 	"/health",
 	"/auth/general/token",
+	"/wanrun/health", // TODO: temporary
 }
 
 // NewJwtValidationMiddleware: JWT検証用のミドルウェア設定を生成

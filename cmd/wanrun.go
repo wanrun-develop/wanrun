@@ -99,7 +99,7 @@ func Main() {
 	// newRouter(e, dbConn)
 	// e.GET("/test", internal.Test, authMW.RoleAuthorization(authMW.ALL))
 	// ヘルスチェック
-	e.GET("/health", func(c echo.Context) error {
+	e.GET("/wanrun/health", func(c echo.Context) error {
 		return c.String(http.StatusOK, "ok")
 	})
 
