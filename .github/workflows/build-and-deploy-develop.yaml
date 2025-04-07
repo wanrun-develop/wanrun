@@ -23,6 +23,7 @@ on:
         type: choice
         options:
           - develop
+          - deploy-test
 
 env:
   # aws

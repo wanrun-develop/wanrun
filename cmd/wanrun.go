@@ -9,10 +9,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
 
 	"github.com/wanrun-develop/wanrun/configs"
-	"github.com/wanrun-develop/wanrun/internal"
 
 	//auth
 	authRepository "github.com/wanrun-develop/wanrun/internal/auth/adapters/repository"
@@ -60,11 +58,8 @@ import (
 	interactionFacade "github.com/wanrun-develop/wanrun/internal/interaction/facade"
 
 	//other
-	"github.com/wanrun-develop/wanrun/internal/db"
 	"github.com/wanrun-develop/wanrun/internal/transaction"
 
-	"github.com/wanrun-develop/wanrun/pkg/errors"
-	logger "github.com/wanrun-develop/wanrun/pkg/log"
 	"gorm.io/gorm"
 )
 
@@ -73,43 +68,43 @@ func init() {
 }
 
 func Main() {
-	dbConn, err := db.NewDB()
-	if err != nil {
-		log.Fatalln(err)
-	}
+	// dbConn, err := db.NewDB()
+	// if err != nil {
+	// 	log.Fatalln(err)
+	// }
 
-	defer db.CloseDB(dbConn)
+	// defer db.CloseDB(dbConn)
 
 	e := echo.New()
 
 	// グローバルロガーの初期化
-	zap := logger.NewWanRunLogger()
-	logger.SetLogger(zap) // グローバルロガーを設定
-	// アプリケーション終了時にロガーを同期
-	defer zap.Sync()
+	// zap := logger.NewWanRunLogger()
+	// logger.SetLogger(zap) // グローバルロガーを設定
+	// // アプリケーション終了時にロガーを同期
+	// defer zap.Sync()
 
-	// CORSの設定
-	e.Use(middleware.CORS())
+	// // CORSの設定
+	// e.Use(middleware.CORS())
 
-	// ミドルウェアを登録
-	e.Use(middleware.RequestID())
-	e.HTTPErrorHandler = errors.HttpErrorHandler
-	e.Use(logger.RequestLoggerMiddleware(zap))
+	// // ミドルウェアを登録
+	// e.Use(middleware.RequestID())
+	// e.HTTPErrorHandler = errors.HttpErrorHandler
+	// e.Use(logger.RequestLoggerMiddleware(zap))
 
-	// JWTミドルウェアの設定
-	authMiddleware := newAuthMiddleware(dbConn)
-	e.Use(authMiddleware.NewJwtValidationMiddleware())
+	// // JWTミドルウェアの設定
+	// authMiddleware := newAuthMiddleware(dbConn)
+	// e.Use(authMiddleware.NewJwtValidationMiddleware())
 
 	// Router設定
-	newRouter(e, dbConn)
-	e.GET("/test", internal.Test, authMW.RoleAuthorization(authMW.ALL))
+	// newRouter(e, dbConn)
+	// e.GET("/test", internal.Test, authMW.RoleAuthorization(authMW.ALL))
 	// ヘルスチェック
 	e.GET("/health", func(c echo.Context) error {
 		return c.String(http.StatusOK, "ok")
 	})
 
 	// 最大リクエストボディサイズの指定
-	e.Use(middleware.BodyLimit("10M")) // 最大10MB
+	// e.Use(middleware.BodyLimit("10M")) // 最大10MB
 
 	e.Logger.Fatal(e.Start(":8080"))
 }
