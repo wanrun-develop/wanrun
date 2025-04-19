@@ -35,7 +35,7 @@ const (
 )
 
 // リクエストに使うfieldMaskたち
-var BASE_FILEDS = []string{
+var BASE_FIELDS = []string{
 	F_ID_IO,
 	F_ADDRESSCOMPONENTS_LO,
 	F_SHORTFORMATTEDADDRESS_LO,
@@ -59,17 +59,21 @@ type IFieldMask interface {
 // 詳細情報用
 type BaseField struct{}
 
+func NewBaseField() IFieldMask {
+	return &BaseField{}
+}
+
 func (b BaseField) getValue() string {
-	return strings.Join(BASE_FILEDS, ",")
+	return strings.Join(BASE_FIELDS, ",")
 }
 
 /*
-search nearbyようにfieldに"palce."のプレフィックスを付与する
+search nearbyようにfieldに"place."のプレフィックスを付与する
 */
 func (b BaseField) getValueWPlaces() string {
 	// BASE_FILED_MASK のコピーを作成
-	fieldsWithPlace := make([]string, len(BASE_FILEDS))
-	copy(fieldsWithPlace, BASE_FILEDS)
+	fieldsWithPlace := make([]string, len(BASE_FIELDS))
+	copy(fieldsWithPlace, BASE_FIELDS)
 
 	// "place." をそれぞれの定数に付与
 	for i, field := range fieldsWithPlace {

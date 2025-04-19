@@ -161,3 +161,11 @@ wanrunからcmsサービスをローカルで使えばこのminioを見るよう
 ### FYI
 - mino: https://github.com/minio/minio
 - 操作方法: https://go-tech.blog/aws/s3-minio/
+
+## geminiコマンド
+コマンド | 説明
+---|---
+/gemini summary | pull リクエストの変更の概要を投稿します。
+/gemini review | pull リクエストの変更のコードレビューを投稿します。
+/gemini | コメントで Gemini Code Assist を手動で呼び出す
+/gemini help | 使用可能なコマンドの概要

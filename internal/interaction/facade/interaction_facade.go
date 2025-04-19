@@ -2,12 +2,14 @@ package facade
 
 import (
 	"github.com/labstack/echo/v4"
+	"github.com/wanrun-develop/wanrun/common"
 	"github.com/wanrun-develop/wanrun/internal/interaction/adapters/repository"
 	"github.com/wanrun-develop/wanrun/internal/wrcontext"
 )
 
 type IBookmarkFacade interface {
 	GetAllUserBookmarks(echo.Context) ([]int64, error)
+	GetAllUserBookmarksByPage(echo.Context, common.PaginationReq) ([]int64, error)
 }
 
 type bookmarkFacade struct {
@@ -34,6 +36,36 @@ func (f *bookmarkFacade) GetAllUserBookmarks(c echo.Context) ([]int64, error) {
 	}
 
 	bookmarks, err := f.r.GetBookmarks(c, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	bookmarkedDogrunIDs := []int64{}
+	for _, bookmark := range bookmarks {
+		bookmarkedDogrunIDs = append(bookmarkedDogrunIDs, bookmark.DogrunID.Int64)
+	}
+
+	return bookmarkedDogrunIDs, nil
+}
+
+// GetAllUserBookmarksByPage: ログインユーザーのブックマークを取得
+// paginationあり
+// args:
+//   - echo.Context:	コンテキスト
+//
+// return:
+//   - []int64:	bookmarkIDs
+//   - error:	エラー
+func (f *bookmarkFacade) GetAllUserBookmarksByPage(c echo.Context, page common.PaginationReq) ([]int64, error) {
+	// ログインユーザーIDの取得
+	userID, err := wrcontext.GetLoginUserID(c)
+	if err != nil {
+		return nil, err
+	}
+
+	limit := page.Count
+	offset := page.Count * (page.Page - 1)
+	bookmarks, err := f.r.GetBookmarksByPage(c, userID, limit, offset)
 	if err != nil {
 		return nil, err
 	}

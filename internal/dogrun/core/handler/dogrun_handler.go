@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
+	"github.com/wanrun-develop/wanrun/common"
 	"github.com/wanrun-develop/wanrun/internal/dogrun/adapters/googleplace"
 	"github.com/wanrun-develop/wanrun/internal/dogrun/adapters/repository"
 	"github.com/wanrun-develop/wanrun/internal/dogrun/core/dto"
@@ -29,6 +30,7 @@ type IDogrunHandler interface {
 	SearchAroundAndTagDogruns(echo.Context, dto.SearchAroundRectangleCondition) ([]dto.DogrunLists, error)
 	getBookmarkedDogrunIDs(echo.Context, chan<- []int64)
 	GetDogrunPhotoSrc(echo.Context, string, string, string) (string, error)
+	GetBookmarkedDogruns(echo.Context, common.PaginationReq) ([]dto.DogrunLists, error)
 }
 
 type dogrunHandler struct {
@@ -75,7 +77,7 @@ func (h *dogrunHandler) GetDogrunDetail(c echo.Context, placeID string) (dto.Dog
 	}
 
 	//dbから取得
-	dogrunD, err := h.drr.GetDogrunByPlaceID(c, placeID)
+	dogrunD, err := h.drr.WithDogrunTags().WithRegularBusinessHours().WithSpecialBusinessHours().GetDogrunByPlaceID(c, placeID)
 	if err != nil {
 		return dto.DogrunDetail{}, err
 	}
@@ -137,7 +139,7 @@ func (h *dogrunHandler) SearchAroundDogruns(c echo.Context, condition dto.Search
 	go h.getBookmarkedDogrunIDs(c, bookmarkedDogrunIDsCH)
 
 	//base情報のFieldを使用
-	var baseFiled googleplace.IFieldMask = googleplace.BaseField{}
+	baseFiled := googleplace.NewBaseField()
 
 	//place情報の取得
 	dogrunsG, err := h.searchTextUpToSpecifiedTimes(c, payload, baseFiled)
@@ -151,14 +153,18 @@ func (h *dogrunHandler) SearchAroundDogruns(c echo.Context, condition dto.Search
 	}
 
 	//DBにある指定場所内のドッグランを取得
-	dogrunsD, err := h.drr.GetDogrunByRectanglePointerOrPlaceId(c, condition, dogrunGPlaceIDs)
+	dogrunsD, err := h.drr.
+		WithDogrunTags().
+		WithRegularBusinessHours().
+		WithSpecialBusinessHours().
+		GetDogrunByRectanglePointerOrPlaceId(c, condition, dogrunGPlaceIDs)
 	if err != nil {
 		return nil, err
 	}
 	logger.Infof("DBから取得数:%d", len(dogrunsD))
 
 	//検索結果からレスポンスを作成
-	dogrunLists, err := h.integrateDogrunInfos(dogrunsG, dogrunsD)
+	dogrunLists, err := integrateDogrunInfos(dogrunsG, dogrunsD)
 	logger.Infof("レスポンス件数:%d", len(dogrunLists))
 	if err != nil {
 		return nil, err
@@ -637,7 +643,7 @@ func (h *dogrunHandler) searchTextUpToSpecifiedTimes(c echo.Context, payload goo
 検索結果をもとに、レスポンス用のDTOを作成
 placeIdで、両方にあるデータと、DBにのみあるデータ等で分けて、それぞれ統合する
 */
-func (h *dogrunHandler) integrateDogrunInfos(dogrunsG []googleplace.BaseResource, dogrunsD []model.Dogrun) ([]dto.DogrunLists, error) {
+func integrateDogrunInfos(dogrunsG []googleplace.BaseResource, dogrunsD []model.Dogrun) ([]dto.DogrunLists, error) {
 	//google情報からplaceIdをkeyにmapにまとめる
 	dogrunsGWithPlaceID := make(map[string]googleplace.BaseResource, len(dogrunsG))
 	for _, dogrunG := range dogrunsG {
@@ -819,28 +825,6 @@ func resolvePlacePhotos(dogrunG googleplace.BaseResource) []dto.PhotoInfo {
 	return photos
 }
 
-// GenerateSetDogrunIDs: dogrunIDがないデータに対して、dogrunsテーブルに登録し、IDをdtoにセットする
-//
-// args:
-//   - echo.Context:	コンテキスト
-//   - []dto.DogrunLists:	dogrunIDメンテを行う対象のdto
-//
-// return:
-//   - error:	エラー
-func (h *dogrunHandler) GenerateSetDogrunIDs(c echo.Context, dogrunLists []dto.DogrunLists) error {
-	for i := range dogrunLists {
-		if dogrunLists[i].DogrunID == 0 {
-			//id発行
-			dogrunID, err := h.persistenceDogrunPlaceId(c, dogrunLists[i].PlaceId)
-			if err != nil {
-				return err
-			}
-			dogrunLists[i].DogrunID = dogrunID
-		}
-	}
-	return nil
-}
-
 // persistenceDogrunPlaceId: DBにないplaceIdをDBへ保存して、PKを発行させる
 //
 // args:
@@ -872,10 +856,10 @@ func (h *dogrunHandler) persistenceDogrunPlaceId(c echo.Context, placeId string)
 //
 // return:
 //   - []model.Dogrun:	チェック済みドッグラン情報
-func excludeInsufficientDogrunInfo(c echo.Context, dogrunsDParam []dto.DogrunLists) []dto.DogrunLists {
+func excludeInsufficientDogrunInfo(c echo.Context, dogrunListsP []dto.DogrunLists) []dto.DogrunLists {
 	logger := log.GetLogger(c).Sugar()
 	dogruns := []dto.DogrunLists{}
-	for _, dogrun := range dogrunsDParam {
+	for _, dogrun := range dogrunListsP {
 		if dogrun.IsSufficientInfo() {
 			dogruns = append(dogruns, dogrun)
 		} else {
@@ -884,4 +868,141 @@ func excludeInsufficientDogrunInfo(c echo.Context, dogrunsDParam []dto.DogrunLis
 	}
 
 	return dogruns
+}
+
+// GenerateSetDogrunIDs: dogrunIDがないデータに対して、dogrunsテーブルに登録し、IDをdtoにセットする
+//
+// args:
+//   - echo.Context:	コンテキスト
+//   - []dto.DogrunLists:	dogrunIDメンテを行う対象のdto
+//
+// return:
+//   - error:	エラー
+func (h *dogrunHandler) GenerateSetDogrunIDs(c echo.Context, dogrunLists []dto.DogrunLists) error {
+	for i := range dogrunLists {
+		if dogrunLists[i].DogrunID == 0 {
+			//id発行
+			dogrunID, err := h.persistenceDogrunPlaceId(c, dogrunLists[i].PlaceId)
+			if err != nil {
+				return err
+			}
+			dogrunLists[i].DogrunID = dogrunID
+		}
+	}
+	return nil
+}
+
+// GetBookmarkedDogruns: ログインユーザーのブックマーク済みドッグランの一覧を取得
+//
+// args:
+//   - echo.Context:	コンテキスト
+//
+// return:
+//   - []dto.DogrunLists:	ドッグラン一覧
+//   - error:	エラー
+func (h *dogrunHandler) GetBookmarkedDogruns(c echo.Context, page common.PaginationReq) ([]dto.DogrunLists, error) {
+	logger := log.GetLogger(c).Sugar()
+
+	bookmarkedDogrunIDs, err := h.bf.GetAllUserBookmarksByPage(c, page)
+	if err != nil {
+		return nil, err
+	}
+
+	//0件バリデーション
+	if len(bookmarkedDogrunIDs) < 1 {
+		logger.Info("ブックマークしたドッグランが存在しません")
+		return []dto.DogrunLists{}, nil
+	}
+	logger.Info("取得対象", bookmarkedDogrunIDs)
+
+	//ドッグランのselect
+	bookmarkedDogruns, err := h.drr.
+		WithDogrunTags().
+		WithRegularBusinessHours().
+		WithSpecialBusinessHours().
+		FindDogrunByIDs(c, bookmarkedDogrunIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	//placeIDの抽出
+	placeIds := []string{}
+	for _, dogrun := range bookmarkedDogruns {
+		if dogrun.PlaceId.Valid {
+			placeIds = append(placeIds, dogrun.PlaceId.String)
+		}
+	}
+
+	//goroutineでgoogle検索
+	googleBaseField := googleplace.NewBaseField()
+	googleResultCh := make(chan googleplace.BaseResource)
+	defer close(googleResultCh)
+
+	for _, placeId := range placeIds {
+		go h.AsyncSearchGooglePlaceByPlaceIds(c, placeId, googleBaseField, googleResultCh)
+	}
+
+	//非同期google検索結果を受け取る
+	dogrunG := []googleplace.BaseResource{}
+	for range placeIds {
+		googleResult := <-googleResultCh
+
+		if googleResult.ID == "" {
+			err := errors.NewWRError(nil, "指定されたPlaceIdのデータが存在しません。", errors.NewDogrunClientErrorEType())
+			logger.Error(err)
+			continue //TODO: 落とすべきではないか、要検討
+		}
+		dogrunG = append(dogrunG, googleResult)
+	}
+
+	//レスポンスDTOへ統合
+	dogrunLists, err := integrateDogrunInfos(dogrunG, bookmarkedDogruns)
+	if err != nil {
+		return nil, err
+	}
+
+	//ドッグラン情報の過不足フィルター
+	dogrunLists = excludeInsufficientDogrunInfo(c, dogrunLists)
+
+	// mapに変換してIsBookmarkedフラグを更新
+	bookmarkedDogrunIDMap := util.ConvertSliceToMap(bookmarkedDogrunIDs, func(i int64) int64 { return i })
+	for i := range dogrunLists {
+		if _, exist := bookmarkedDogrunIDMap[int64(dogrunLists[i].DogrunID)]; exist {
+			dogrunLists[i].IsBookmarked = true
+		}
+	}
+
+	return dogrunLists, nil
+}
+
+// AsyncSearchGooglePlaceByPlaceIds: 非同期によるPlaceIDでのgoogle place検索
+//
+// args:
+//   - echo.Context:	コンテキスト
+//   - string:	placeID
+//   - googleplace.IFieldMask:	検索対象のgoogle field mask
+//   - chan<- google.BaseResource:	レスポンス入れる受信専用チャネル
+//
+// return:
+func (h *dogrunHandler) AsyncSearchGooglePlaceByPlaceIds(c echo.Context, placeID string, fields googleplace.IFieldMask, resCh chan<- googleplace.BaseResource) {
+	logger := log.GetLogger(c).Sugar()
+
+	//place情報の取得
+	resG, err := h.rest.GETPlaceInfo(c, placeID, fields)
+	if err != nil {
+		return
+	}
+	logger.Info("Google Place APIによって、ドッグラン情報の取得成功")
+
+	// JSONデータを構造体にデコード
+	var dogrunG googleplace.BaseResource
+	err = json.Unmarshal(resG, &dogrunG)
+	if err != nil {
+		err = errors.NewWRError(nil, "google apiレスポンスの変換に失敗しました。", errors.NewDogrunServerErrorEType())
+		logger.Error(err)
+		resCh <- googleplace.BaseResource{}
+		return
+	}
+
+	resCh <- dogrunG
 }
