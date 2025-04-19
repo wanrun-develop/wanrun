@@ -31,11 +31,11 @@ func NewAuthJwt(ar repository.IAuthRepository) IAuthJwt {
 // スキップ対象のパスを定義
 var skipPaths = []string{
 	"/health",
-	"wanrun/auth/dogowner/token",
-	"wanrun/auth/dogrunmg/token",
-	"wanrun/dogowner/signUp",
-	"wanrun/org/contract",
-	"wanrun/auth/general/token",
+	"/wanrun/auth/dogowner/token",
+	"/wanrun/auth/dogrunmg/token",
+	"/wanrun/dogowner/signUp",
+	"/wanrun/org/contract",
+	"/wanrun/auth/general/token",
 }
 
 // NewJwtValidationMiddleware: JWT検証用のミドルウェア設定を生成
