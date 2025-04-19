@@ -1,11 +1,8 @@
 package configs
 
 import (
-	"fmt"
 	"log"
-	"os"
 
-	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
 )
 
@@ -17,50 +14,25 @@ type DBInfoConfig struct {
 	postgresDB       string
 }
 
-// 起動環境値
-var profile string
-
 func init() {
-	profile = getEnv("APP_PROFILE", "dev")
 	if err := LoadConfig(); err != nil {
-		log.Fatalf("設定ファイルの読み込みに失敗しました: %s \n", err)
-	}
-	if CheckConfigChangeError() != nil {
-		log.Fatalf("設定ファイルの読み込みに失敗しました: %s \n", configChangeError)
+		log.Fatalf("設定の初期化に失敗しました: %s \n", err)
 	}
 }
 
 var v *viper.Viper
-var configChangeError error
 
 /*
-viperのload
+viperのload (環境変数のみ)
 */
 func LoadConfig() error {
 	v = viper.New()
-	v.SetConfigType("yaml")                  // 設定ファイルの形式
-	v.SetConfigName("config-" + profile)     // 設定ファイル名を拡張子抜きで指定する
-	v.AddConfigPath("./configs/")            // 設定ファイルの探索パスを指定する
-	v.AddConfigPath(".")                     // 現在のワーキングディレクトリを探索することもできる
-	if err := v.ReadInConfig(); err != nil { // 設定ファイルを探索して読み取る
-		return err
-	}
-	v.WatchConfig()                           // 設定フィアルの変更を検知する
-	v.OnConfigChange(func(e fsnotify.Event) { // 検知時に実行する関数の設定
-		fmt.Println("設定ファイルが変更されました:", e.Name)
-		if err := v.ReadInConfig(); err != nil { // 設定ファイルを探索して読み取る
-			configChangeError = err
-		}
-	})
+
+	// 環境変数のバインドとデフォルト値の設定のみを行う
 	bindEnvs()    // 環境変数
 	setDefaults() // デフォルト設定
 
 	return nil
-}
-
-// クロージャーのエラーを外に出すよう
-func CheckConfigChangeError() error {
-	return configChangeError
 }
 
 /*
@@ -84,10 +56,11 @@ func bindEnvs() {
 	_ = v.BindEnv("aws.access.key", "AWS_ACCESS_KEY")               // awsのアクセスキー
 	_ = v.BindEnv("aws.secret.access.key", "AWS_SECRET_ACCESS_KEY") // awsのシークレットアクセスキー
 	_ = v.BindEnv("aws.s3.bucket.name", "AWS_S3_BUCKET_NAME")       // awsのbucket名
+	_ = v.BindEnv("log.level", "LOG_LEVEL")                         // ログレベル
 }
 
 /*
-ivperへのデフォルト設定（必要なやつ）
+viperへのデフォルト設定（必要なやつ）
 */
 func setDefaults() {
 	v.SetDefault("postgres.host", "localhost")
@@ -95,14 +68,7 @@ func setDefaults() {
 	v.SetDefault("postgres.user", "wanrun")
 	v.SetDefault("postgres.password", "__dummdy__")
 	v.SetDefault("postgres.dbname", "dbname")
-}
-
-// 環境変数の取得
-func getEnv(key string, defaultVal string) string {
-	if value, exists := os.LookupEnv(key); exists {
-		return value
-	}
-	return defaultVal
+	v.SetDefault("log.level", "info") // ログレベルのデフォルト値
 }
 
 /*
