@@ -146,7 +146,7 @@ func (h *dogrunHandler) GetDogrunDetailByID(c echo.Context, dogrunID int64) (dto
 
 	// 特定のdogrunIdに対するブックマーク情報を取得
 
-	isBookmarked, err := h.bf.GetBookmarkByDogrunID(c, dogrunID)
+	isBookmarked, err := h.bf.IsDogrunBookmarked(c, dogrunID)
 	if err != nil {
 		logger.Warnw("ブックマーク情報の取得に失敗", "error", err)
 	} else {

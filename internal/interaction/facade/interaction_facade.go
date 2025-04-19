@@ -10,7 +10,7 @@ import (
 type IBookmarkFacade interface {
 	GetAllUserBookmarks(echo.Context) ([]int64, error)
 	GetAllUserBookmarksByPage(echo.Context, common.PaginationReq) ([]int64, error)
-	GetBookmarkByDogrunID(echo.Context, int64) (bool, error)
+	IsDogrunBookmarked(echo.Context, int64) (bool, error)
 }
 
 type bookmarkFacade struct {
@@ -88,7 +88,7 @@ func (f *bookmarkFacade) GetAllUserBookmarksByPage(c echo.Context, page common.P
 // return:
 //   - bool:	ブックマーク済みかどうか
 //   - error:	エラー
-func (f *bookmarkFacade) GetBookmarkByDogrunID(c echo.Context, dogrunID int64) (bool, error) {
+func (f *bookmarkFacade) IsDogrunBookmarked(c echo.Context, dogrunID int64) (bool, error) {
 	// ログインユーザーIDの取得
 	userID, err := wrcontext.GetLoginUserID(c)
 	if err != nil {
