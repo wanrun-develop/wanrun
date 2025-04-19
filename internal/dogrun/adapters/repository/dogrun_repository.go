@@ -16,7 +16,7 @@ type IDogrunRepository interface {
 	WithRegularBusinessHours() IDogrunRepository
 	WithSpecialBusinessHours() IDogrunRepository
 	GetDogrunByPlaceID(echo.Context, string) (model.Dogrun, error)
-	GetDogrunByID(string) (model.Dogrun, error)
+	GetDogrunByID(int64) (model.Dogrun, error)
 	FindDogrunByIDs(echo.Context, []int64) ([]model.Dogrun, error)
 	GetDogrunByRectanglePointerOrPlaceId(echo.Context, dto.SearchAroundRectangleCondition, []string) ([]model.Dogrun, error)
 	GetDogrunByRectanglePointerAndDogrunTags(echo.Context, dto.SearchAroundRectangleCondition) ([]model.Dogrun, error)
@@ -63,10 +63,15 @@ func (drr *dogrunRepository) GetDogrunByPlaceID(c echo.Context, placeID string) 
 /*
 DogrunIDで、ドッグランの取得
 */
-func (drr *dogrunRepository) GetDogrunByID(id string) (model.Dogrun, error) {
+func (drr *dogrunRepository) GetDogrunByID(id int64) (model.Dogrun, error) {
 	dogrun := model.Dogrun{}
-	if err := drr.db.Where("dogrun_id = ?", id).Find(&dogrun).Error; err != nil {
-		return dogrun, err
+	if err := drr.db.Preload("DogrunTags").
+		Preload("RegularBusinessHours").
+		Preload("SpecialBusinessHours").
+		Where("dogrun_id = ?", id).
+		Find(&dogrun).Error; err != nil {
+		wrErr := errors.NewWRError(err, "DBからのデータ取得に失敗しました", errors.NewDogrunServerErrorEType())
+		return model.Dogrun{}, wrErr
 	}
 	return dogrun, nil
 }

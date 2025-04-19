@@ -130,9 +130,10 @@ func newRouter(e *echo.Echo, dbConn *gorm.DB) {
 
 	// dogrun関連
 	dogrunController := newDogrun(dbConn)
+
 	dogrun := wanrun.Group("dogrun")
-	dogrun.GET("/detail/:placeId", dogrunController.GetDogrunDetail, authMW.RoleAuthorization(authMW.DOGRUN_REFER))
-	dogrun.GET("/:id", dogrunController.GetDogrun, authMW.RoleAuthorization(authMW.DOGRUN_REFER))
+	// dogrun.GET("/detail/:placeId", dogrunController.GetDogrunDetail, authMW.RoleAuthorization(authMW.DOGRUN_REFER))
+	dogrun.GET("/detail/:dogrunId", dogrunController.GetDogrunDetailByID, authMW.RoleAuthorization(authMW.DOGRUN_REFER))
 	dogrun.GET("/photo/src", dogrunController.GetDogrunPhoto, authMW.RoleAuthorization(authMW.DOGRUN_REFER))
 	dogrun.GET("/mst/tag", dogrunController.GetDogrunTagMst, authMW.RoleAuthorization(authMW.ALL))
 	dogrun.POST("/search", dogrunController.SearchAroundDogruns, authMW.RoleAuthorization(authMW.DOGRUN_SEARCH))
