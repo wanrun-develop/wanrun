@@ -44,8 +44,8 @@ func bindEnvs() {
 	_ = v.BindEnv("postgres.user", "POSTGRES_USER")
 	_ = v.BindEnv("postgres.password", "POSTGRES_PASSWORD")
 	_ = v.BindEnv("postgres.dbname", "POSTGRES_DB")
-	_ = v.BindEnv("stage", "STAGE")
-	_ = v.BindEnv("env", "ENV")
+	_ = v.BindEnv("stage", "STAGE") // アプリケーションの起動環境
+	_ = v.BindEnv("env", "ENV")     // 環境情報（dev, staging, prod）
 	_ = v.BindEnv("google.place.api.key", "GOOGLE_PLACE_API_KEY")
 	_ = v.BindEnv("jwt.os.secret.key", "SECRET_KEY")                // jwt生成用の秘密鍵
 	_ = v.BindEnv("jwt.exp.time", "JWT_EXP_TIME")                   // jwt生成用の有効期限（時間）
@@ -69,6 +69,8 @@ func setDefaults() {
 	v.SetDefault("postgres.password", "__dummdy__")
 	v.SetDefault("postgres.dbname", "dbname")
 	v.SetDefault("log.level", "info") // ログレベルのデフォルト値
+	v.SetDefault("env", "dev")        // 環境情報のデフォルト値
+	v.SetDefault("stage", "local")    // アプリケーションの起動環境のデフォルト値
 }
 
 /*

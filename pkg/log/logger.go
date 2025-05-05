@@ -2,10 +2,10 @@ package log
 
 import (
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/labstack/echo/v4"
+	"github.com/wanrun-develop/wanrun/common"
 	"github.com/wanrun-develop/wanrun/configs"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -20,7 +20,7 @@ func RequestLoggerMiddleware(logger *zap.Logger) echo.MiddlewareFunc {
 			// リクエストスコープのロガーを作成/取得
 			reqLogger := GetLogger(c)
 			//リクエストログ
-			reqLogger.Info("Request",
+			reqLogger.Info("Request Start "+c.Request().Method+":"+c.Request().URL.Path,
 				zap.String("method", c.Request().Method),
 				zap.String("path", c.Request().URL.Path),
 				zap.Int("bytes_in", int(c.Request().ContentLength)),
@@ -69,15 +69,20 @@ func NewWanRunLogger() *zap.Logger {
 	level := zap.NewAtomicLevel()
 	// ログレベルを文字列から設定
 	levelString := configs.FetchConfigStr("log.level")
-	fmt.Println(levelString)
 	err := level.UnmarshalText([]byte(levelString))
 	if err != nil {
 		level.SetLevel(zapcore.InfoLevel)
 	}
 
+	//出力エンコーディング設定
+	encoding := "json"
+	if common.IsLocal() {
+		encoding = "console"
+	}
+
 	myConfig := zap.Config{
 		Level:             level,
-		Encoding:          "console",
+		Encoding:          encoding,
 		DisableStacktrace: false,
 		EncoderConfig: zapcore.EncoderConfig{
 			TimeKey:        "Time",

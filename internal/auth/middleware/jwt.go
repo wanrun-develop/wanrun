@@ -52,8 +52,8 @@ func (aj *authJwt) NewJwtValidationMiddleware() echo.MiddlewareFunc {
 			NewClaimsFunc: func(c echo.Context) jwt.Claims {
 				return &handler.AccountClaims{} // カスタムクレームを設定
 			},
-			TokenLookup: core.TOKEN_LOOK_UP, // トークンの取得場所
-			ContextKey:  core.CONTEXT_KEY,   // カスタムキーを設定
+			TokenLookup: core.COOKIE_TOKEN_LOOK_UP, // Cookieからトークンを取得するように変更
+			ContextKey:  core.CONTEXT_KEY,          // カスタムキーを設定
 			Skipper: func(c echo.Context) bool { // スキップするパスを指定
 				path := c.Request().URL.Path
 				return slices.Contains(skipPaths, path)

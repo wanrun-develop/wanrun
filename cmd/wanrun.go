@@ -89,7 +89,12 @@ func Main() {
 	defer zap.Sync()
 
 	// CORSの設定
-	e.Use(middleware.CORS())
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins:     []string{"*"}, // 本番環境では適切なオリジンを設定する
+		AllowMethods:     []string{http.MethodGet, http.MethodHead, http.MethodPut, http.MethodPatch, http.MethodPost, http.MethodDelete},
+		AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
+		AllowCredentials: true, // Cookieの送受信を許可
+	}))
 
 	// ミドルウェアを登録
 	e.Use(middleware.RequestID())
@@ -115,10 +120,10 @@ func Main() {
 }
 
 func newRouter(e *echo.Echo, dbConn *gorm.DB) {
-	wanrun := e.Group("wanrun")
+	wanrun := e.Group("/wanrun")
 	// dog関連
 	dogController := newDog(dbConn)
-	dog := wanrun.Group("dog")
+	dog := wanrun.Group("/dog")
 	dog.GET("/all", dogController.GetAllDogs, authMW.RoleAuthorization(authMW.SYSTEM))
 	dog.GET("/detail/:dogID", dogController.GetDogByID, authMW.RoleAuthorization(authMW.DOG_MANAGE))
 	dog.GET("/owned/:dogOwnerId", dogController.GetDogByDogOwnerID, authMW.RoleAuthorization(authMW.DOG_MANAGE))
