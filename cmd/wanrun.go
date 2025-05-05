@@ -131,7 +131,7 @@ func newRouter(e *echo.Echo, dbConn *gorm.DB) {
 	// dogrun関連
 	dogrunController := newDogrun(dbConn)
 
-	dogrun := wanrun.Group("dogrun")
+	dogrun := wanrun.Group("/dogrun")
 	// dogrun.GET("/detail/:placeId", dogrunController.GetDogrunDetail, authMW.RoleAuthorization(authMW.DOGRUN_REFER))
 	dogrun.GET("/detail/:dogrunId", dogrunController.GetDogrunDetailByID, authMW.RoleAuthorization(authMW.DOGRUN_REFER))
 	dogrun.GET("/photo/src", dogrunController.GetDogrunPhoto, authMW.RoleAuthorization(authMW.DOGRUN_REFER))
@@ -141,12 +141,12 @@ func newRouter(e *echo.Echo, dbConn *gorm.DB) {
 
 	// dogOwner関連
 	dogOwnerController := newDogOwner(dbConn)
-	dogOwner := wanrun.Group("dogowner")
+	dogOwner := wanrun.Group("/dogowner")
 	dogOwner.POST("/signUp", dogOwnerController.DogOwnerSignUp)
 
 	// auth関連
 	authController := newAuth(dbConn)
-	auth := wanrun.Group("auth")
+	auth := wanrun.Group("/auth")
 	// dogowner
 	auth.POST("/dogowner/token", authController.LogInDogowner)
 	auth.POST("/dogowner/revoke", authController.RevokeDogowner, authMW.RoleAuthorization(authMW.DOG_MANAGE))
@@ -159,24 +159,24 @@ func newRouter(e *echo.Echo, dbConn *gorm.DB) {
 
 	//interaction関連
 	interactionController := newInteraction(dbConn)
-	bookmark := wanrun.Group("bookmark")
+	bookmark := wanrun.Group("/bookmark")
 	bookmark.POST("/dogrun", interactionController.AddBookmark, authMW.RoleAuthorization(authMW.DOGRUN_SEARCH))
 	bookmark.DELETE("/dogrun", interactionController.DeleteBookmarks, authMW.RoleAuthorization(authMW.DOGRUN_SEARCH))
 
-	access := wanrun.Group("access")
+	access := wanrun.Group("/access")
 	access.GET("/today/checkins", interactionController.GetTodayCheckins, authMW.RoleAuthorization(authMW.DOG_MANAGE))
 	access.POST("/checkin", interactionController.CheckinDogrun, authMW.RoleAuthorization(authMW.DOG_MANAGE))
 	access.DELETE("/checkout", interactionController.CheckoutDogrun, authMW.RoleAuthorization(authMW.DOG_MANAGE))
 
 	// cms関連
 	cmsController := newCms(dbConn)
-	cms := wanrun.Group("cms")
+	cms := wanrun.Group("/cms")
 	cms.POST("/upload/file", cmsController.UploadFile, authMW.RoleAuthorization(authMW.ALL))
 	cms.DELETE("", cmsController.DeleteFile, authMW.RoleAuthorization(authMW.ALL))
 
 	// org関連
 	orgController := newOrg(dbConn)
-	org := wanrun.Group("org")
+	org := wanrun.Group("/org")
 	org.POST("/contract", orgController.OrgSignUp)
 }
 
