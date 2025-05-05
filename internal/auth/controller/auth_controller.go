@@ -7,6 +7,8 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
+	"github.com/wanrun-develop/wanrun/common"
+	"github.com/wanrun-develop/wanrun/internal/auth/core"
 	"github.com/wanrun-develop/wanrun/internal/auth/core/dto"
 	"github.com/wanrun-develop/wanrun/internal/auth/core/handler"
 	"github.com/wanrun-develop/wanrun/internal/wrcontext"
@@ -144,6 +146,14 @@ func (ac *authController) LogInDogowner(c echo.Context) error {
 		return wrErr
 	}
 
+	// Cookieにアクセストークンを設定
+	cookie := createAuthCookie(token.AccessToken, false)
+
+	c.SetCookie(cookie)
+
+	// クライアントにレスポンスを返す
+	// SSRの場合はトークンをレスポンスボディに含める必要はないが、
+	// クライアントサイドで取得したい場合のためにトークン情報を含めておく
 	return c.JSON(http.StatusOK, token)
 }
 
@@ -165,6 +175,11 @@ func (ac *authController) RevokeDogowner(c echo.Context) error {
 	if wrErr := ac.ah.RevokeDogowner(c, dogownerID); wrErr != nil {
 		return wrErr
 	}
+
+	// 認証Cookieをクリア
+	cookie := createAuthCookie("", true)
+
+	c.SetCookie(cookie)
 
 	return c.JSON(http.StatusOK, map[string]any{})
 }
@@ -208,6 +223,11 @@ func (ac *authController) LogInDogrunmg(c echo.Context) error {
 		return wrErr
 	}
 
+	// Cookieにアクセストークンを設定
+	cookie := createAuthCookie(token.AccessToken, false)
+
+	c.SetCookie(cookie)
+
 	return c.JSON(http.StatusOK, token)
 }
 
@@ -229,6 +249,11 @@ func (ac *authController) RevokeDogrunmg(c echo.Context) error {
 	if wrErr := ac.ah.RevokeDogrunmg(c, dogrunmgID); wrErr != nil {
 		return wrErr
 	}
+
+	// 認証Cookieをクリア
+	cookie := createAuthCookie("", true)
+
+	c.SetCookie(cookie)
 
 	return c.JSON(http.StatusOK, map[string]any{})
 }
@@ -269,5 +294,35 @@ func (ac *authController) IssueGeneralUserToken(c echo.Context) error {
 	if wrErr != nil {
 		return wrErr
 	}
+
+	// Cookieにアクセストークンを設定
+	cookie := createAuthCookie(token.AccessToken, false)
+
+	c.SetCookie(cookie)
+
 	return c.JSON(http.StatusOK, token)
+}
+
+// createAuthCookie：環境に応じた認証Cookie設定を生成する共通関数
+func createAuthCookie(token string, isDelete bool) *http.Cookie {
+	cookie := new(http.Cookie)
+	cookie.Name = core.AUTH_COOKIE_NAME
+	cookie.Path = core.AUTH_COOKIE_PATH
+
+	// 開発環境ではfalse、本番環境ではtrue
+	isProduction := common.IsProduction()
+	cookie.Secure = isProduction
+	cookie.HttpOnly = core.AUTH_COOKIE_HTTP_ONLY
+	// SameSite設定
+	cookie.SameSite = http.SameSiteLaxMode
+
+	if isDelete {
+		cookie.Value = ""
+		cookie.MaxAge = -1
+	} else {
+		cookie.Value = token
+		cookie.MaxAge = core.AUTH_COOKIE_MAX_AGE
+	}
+
+	return cookie
 }
