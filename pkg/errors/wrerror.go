@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
+	"github.com/wanrun-develop/wanrun/pkg/log"
 )
 
 type wrError struct {
@@ -59,14 +60,21 @@ func NewWRError(err error, msg string, errorType eType) *wrError {
 */
 func HttpErrorHandler(err error, c echo.Context) {
 	code := http.StatusInternalServerError
+	logger := log.GetLogger(c)
 
 	var me *wrError
 	if wreer, ok := err.(*wrError); ok {
 		me = wreer
 		code = mappingError(me)
-	} else {
-		c.Logger().Error(err)
+	} else if httpErr, ok := err.(*echo.HTTPError); ok {
+		logger.Error(httpErr.Error())
+		code = httpErr.Code // echoのエラーの場合は、HTTPステータスコードを取得
 		_ = c.JSON(code, err)
+		return
+	} else {
+		logger.Error(err.Error())
+		_ = c.JSON(code, err)
+
 		return
 	}
 
@@ -80,12 +88,12 @@ func HttpErrorHandler(err error, c echo.Context) {
 		if c.Request().Method == echo.HEAD {
 			err := c.NoContent(code)
 			if err != nil {
-				c.Logger().Error(err)
+				logger.Error(err.Error())
 			}
 		} else {
 			err := c.JSON(code, res)
 			if err != nil {
-				c.Logger().Error(err)
+				logger.Error(err.Error())
 			}
 		}
 	}
